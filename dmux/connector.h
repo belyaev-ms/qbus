@@ -49,11 +49,11 @@ protected:
     virtual const bool do_create(const size_t size, const size_t count) = 0; ///< create the connector
     virtual const bool do_open() = 0; ///< open the connector
     virtual const bool do_add(const void *data, const size_t size) = 0; ///< add data to the connector
-    virtual const bool do_add(const void *data, const size_t size, const struct timespec& timeout); ///< add data to the connector
+    virtual const bool do_timed_add(const void *data, const size_t size, const struct timespec& timeout); ///< add data to the connector
     virtual const pmessage_type do_get() const = 0; ///< get the next message from the connector
-    virtual const pmessage_type do_get(const struct timespec& timeout) const; ///< get the next message from the connector
+    virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the connector
     virtual const bool do_pop() = 0; ///< remove the next message from the connector
-    virtual const bool do_pop(const struct timespec& timeout); ///< remove the next message from the connector
+    virtual const bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the connector
 private:
     const std::string m_name;
     const direction_type m_type;
@@ -274,9 +274,9 @@ class safe_connector<Connector, Locker, true> : public base_safe_connector<Conne
     typedef typename base_type::lock_to_pop_type lock_to_pop_type;
 public:
     explicit safe_connector(const std::string& name);
-    virtual const bool do_add(const void *data, const size_t size, const struct timespec& timeout); ///< add data to the connector
-    virtual const pmessage_type do_get(const struct timespec& timeout) const; ///< get the next message from the connector
-    virtual const bool do_pop(const struct timespec& timeout); ///< remove the next message from the connector
+    virtual const bool do_timed_add(const void *data, const size_t size, const struct timespec& timeout); ///< add data to the connector
+    virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the connector
+    virtual const bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the connector
 };
 
 /**
@@ -654,8 +654,8 @@ safe_connector<Connector, Locker, true>::safe_connector(const std::string& name)
  */
 //virtual
 template <typename Connector, typename Locker>
-const bool safe_connector<Connector, Locker, true>::do_add(const void *data, const size_t size,
-    const struct timespec& timeout)
+const bool safe_connector<Connector, Locker, true>::do_timed_add(const void *data,
+    const size_t size, const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     while (get_monotonic_time() < ts)
@@ -677,7 +677,8 @@ const bool safe_connector<Connector, Locker, true>::do_add(const void *data, con
  */
 //virtual
 template <typename Connector, typename Locker>
-const pmessage_type safe_connector<Connector, Locker, true>::do_get(const struct timespec& timeout) const
+const pmessage_type safe_connector<Connector, Locker, true>::
+    do_timed_get(const struct timespec& timeout) const
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     pmessage_type pmessage;
@@ -708,7 +709,8 @@ const pmessage_type safe_connector<Connector, Locker, true>::do_get(const struct
  */
 //virtual
 template <typename Connector, typename Locker>
-const bool safe_connector<Connector, Locker, true>::do_pop(const struct timespec& timeout)
+const bool safe_connector<Connector, Locker, true>::
+    do_timed_pop(const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     while (get_monotonic_time() < ts)

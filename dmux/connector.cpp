@@ -101,7 +101,7 @@ const bool base_connector::add(const void *data, const size_t size,
     const struct timespec& timeout)
 {
     return (m_opened && (CON_OUT == m_type || CON_IO == m_type)) ?
-        do_add(data, size, timeout) : false;
+        do_timed_add(data, size, timeout) : false;
 }
 
 /**
@@ -122,7 +122,7 @@ const pmessage_type base_connector::get() const
 const pmessage_type base_connector::get(const struct timespec& timeout) const
 {
     return (m_opened && (CON_IN == m_type || CON_IO == m_type)) ?
-        do_get(timeout) : pmessage_type();
+        do_timed_get(timeout) : pmessage_type();
 }
 
 /**
@@ -143,7 +143,7 @@ const bool base_connector::pop()
 const bool base_connector::pop(const struct timespec& timeout)
 {
     return (m_opened && (CON_IN == m_type || CON_IO == m_type)) ?
-        do_pop(timeout) : false;
+        do_timed_pop(timeout) : false;
 }
 
 /**
@@ -154,7 +154,7 @@ const bool base_connector::pop(const struct timespec& timeout)
  * @return result of the adding
  */
 //virtual
-const bool base_connector::do_add(const void *data, const size_t size,
+const bool base_connector::do_timed_add(const void *data, const size_t size,
     const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
@@ -176,7 +176,7 @@ const bool base_connector::do_add(const void *data, const size_t size,
  * @return the message
  */
 //virtual
-const pmessage_type base_connector::do_get(const struct timespec& timeout) const
+const pmessage_type base_connector::do_timed_get(const struct timespec& timeout) const
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     pmessage_type pmessage;
@@ -199,7 +199,7 @@ const pmessage_type base_connector::do_get(const struct timespec& timeout) const
  * @return the result of the removing
  */
 //virtual
-const bool base_connector::do_pop(const struct timespec& timeout)
+const bool base_connector::do_timed_pop(const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     unsigned int k = 0;
