@@ -208,7 +208,7 @@ public:
     typedef shared_locker locker_type;
 public:
     typedef scoped_try_lock<locker_type> lock_to_add_type;
-    typedef scoped_try_lock<locker_type> lock_to_pop_type;
+    typedef sharable_try_lock<locker_type> lock_to_pop_type;
     typedef sharable_try_lock<locker_type> lock_to_get_type;
 };
 
