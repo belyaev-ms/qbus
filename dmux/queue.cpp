@@ -1,6 +1,7 @@
 #include "dmux/queue.h"
 #include <stdlib.h>
 #include <string.h>
+#include <boost/interprocess/detail/atomic.hpp>
 #ifdef DMUX_TEST_ENABLED
 #include <iostream>
 #endif
@@ -918,7 +919,7 @@ void shared_queue::slice_type::ref_count(const size_t count)
  */
 const size_t shared_queue::slice_type::inc_ref_count()
 {
-    return ++(*reinterpret_cast<uint32_t*>(m_ptr + REF_COUNT_OFFSET));
+    return boost::interprocess::ipcdetail::atomic_inc32(reinterpret_cast<uint32_t*>(m_ptr + REF_COUNT_OFFSET)) + 1;
 }
 
 //static
