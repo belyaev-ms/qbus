@@ -42,8 +42,8 @@ private:
     typedef boost::detail::spinlock::scoped_lock guard_type;
 private:
     lock_type m_lock;
-    unsigned int m_scoped;
-    unsigned int m_sharable;
+    volatile unsigned int m_scoped;
+    volatile unsigned int m_sharable;
 };
 
 /** Type to indicate to a locker constructor that must not lock it */
