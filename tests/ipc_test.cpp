@@ -42,7 +42,7 @@ void clean_logs()
 std::vector<std::string> get_messages(const std::string& filename)
 {
     std::vector<std::string> result;
-    std::ifstream ifs(filename);
+    std::ifstream ifs(filename.c_str());
     std::string s;
     if (ifs.good())
     {

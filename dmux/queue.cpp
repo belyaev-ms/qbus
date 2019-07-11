@@ -348,11 +348,11 @@ void *base_queue::slice(const pos_type index) const
 //virtual
 const bool base_queue::remove(const pos_type beg, const pos_type end)
 {
-    if (beg == end)
-    {
-        clear();
-        return true;
-    }
+//    if (beg == end)
+//    {
+//        clear(); ///<<< must be virtual
+//        return true;
+//    }
     if (beg == head())
     {
         head(end);
