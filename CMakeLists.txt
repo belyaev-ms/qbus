@@ -10,7 +10,7 @@ project(dmux)
 
 enable_testing()
 
-find_package(Boost COMPONENTS system unit_test_framework REQUIRED)
+find_package(Boost COMPONENTS system thread unit_test_framework REQUIRED)
 if (Boost_FOUND)
     add_definitions(-DDMUX_BOOST_ENABLED)
     include_directories(${Boost_INCLUDE_DIRS})
