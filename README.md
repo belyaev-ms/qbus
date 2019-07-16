@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.com/belyaev-ms/dmux.svg?branch=master)](https://travis-ci.com/belyaev-ms/dmux)
+[![codecov](https://codecov.io/gh/belyaev-ms/dmux/branch/master/graph/badge.svg)](https://codecov.io/gh/belyaev-ms/dmux)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 # dmux

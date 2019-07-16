@@ -1,13 +1,17 @@
 ################################################################################
-# Unit-tests
+# Coverage
 ################################################################################
-add_definitions(-DDMUX_TEST_ENABLED)
-#set(DMUX_COVERAGE_ENABLED yes)
+set(DMUX_COVERAGE_ENABLED yes)
 if (DMUX_COVERAGE_ENABLED)
     include(../cmake/coverage.cmake)
 else (DMUX_COVERAGE_ENABLED)
     set(CMAKE_CXX_FLAGS "-g3")
 endif (DMUX_COVERAGE_ENABLED)
+
+################################################################################
+# Unit-tests
+################################################################################
+add_definitions(-DDMUX_TEST_ENABLED)
 #macros for add an tool
 macro(dmux_add_tool tool)
     add_executable(${tool} ${tool}.cpp)
@@ -34,7 +38,7 @@ dmux_add_test(shared_queue_test)
 dmux_add_test(connector_test)
 dmux_add_test(ipc_test)
 if (DMUX_COVERAGE_ENABLED)
-    dmux_add_coverage(coverage ctest coverage)
+    dmux_coverage(coverage)
 endif (DMUX_COVERAGE_ENABLED)
 
 ################################################################################
