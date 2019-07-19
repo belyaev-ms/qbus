@@ -161,8 +161,9 @@ private:
 template <typename Locker>
 scoped_lock<Locker>::scoped_lock(locker_type& locker) :
     m_locker(locker),
-    m_locked(true)
+    m_locked(false)
 {
+    lock();
 }
 
 /**
@@ -300,8 +301,9 @@ const bool scoped_lock<Locker>::owns() const
 template <typename Locker>
 sharable_lock<Locker>::sharable_lock(locker_type& locker) :
     m_locker(locker),
-    m_locked(true)
+    m_locked(false)
 {
+    lock();
 }
 
 /**
