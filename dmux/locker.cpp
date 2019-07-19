@@ -199,7 +199,8 @@ void shared_locker::unlock_sharable()
  */
 shared_barrier::shared_barrier() :
     m_barrier(0),
-    m_counter(0)
+    m_counter1(0),
+    m_counter2(0)
 {
 }
 
@@ -209,11 +210,25 @@ shared_barrier::shared_barrier() :
 void shared_barrier::open()
 {
     scoped_lock<locker_type> lock(m_locker);
-    while (m_counter > 0)
+    while (m_counter1 > 0)
     {
-        --m_counter;
+        --m_counter1;
+        ++m_counter2;
         m_barrier.post();
     }
+}
+
+/**
+ * Knock on the barrier
+ */
+void shared_barrier::knock() const
+{
+    while (m_counter2 > 0)
+    {
+        sched_yield();
+    }
+    scoped_lock<locker_type> lock(m_locker);
+    ++m_counter1;
 }
 
 /**
@@ -221,16 +236,8 @@ void shared_barrier::open()
  */
 void shared_barrier::wait() const
 {
-    {
-        scoped_lock<locker_type> lock(m_locker);
-        ++m_counter;
-    }
-    m_barrier.wait();
-    while (m_barrier.try_wait())
-    {
-        m_barrier.post();
-        sched_yield();
-    }
+    knock();
+    expect();
 }
 
 /**
@@ -240,27 +247,43 @@ void shared_barrier::wait() const
  */
 const bool shared_barrier::wait(const struct timespec& timeout) const
 {
-    {
-        scoped_lock<locker_type> lock(m_locker);
-        ++m_counter;
-    }
+    knock();
+    return expect(timeout);
+}
+
+/**
+ * Expect the barrier to open
+ */
+void shared_barrier::expect() const
+{
+    m_barrier.wait();
+    scoped_lock<locker_type> lock(m_locker);
+    --m_counter2;
+}
+
+/**
+ * Expect the barrier to open
+ * @param the allowable timeout of the waiting
+ * @return the result of the waiting
+ */
+const bool shared_barrier::expect(const struct timespec& timeout) const
+{
     boost::posix_time::ptime abs_time = boost::get_system_time() +
         boost::posix_time::seconds(timeout.tv_sec) +
         boost::posix_time::microsec(timeout.tv_nsec / 1000);
     if (!m_barrier.timed_wait(abs_time))
     {
         scoped_lock<locker_type> lock(m_locker);
-        if (m_counter > 0)
+        if (m_counter2 == 0)
         {
-            --m_counter;
+            --m_counter1;
+            return false;
         }
-        return false;
+        --m_counter2;
+        return true;
     }
-    while (m_barrier.try_wait())
-    {
-        m_barrier.post();
-        sched_yield();
-    }
+    scoped_lock<locker_type> lock(m_locker);
+    --m_counter2;
     return true;
 }
 

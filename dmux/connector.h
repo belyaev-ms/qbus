@@ -692,8 +692,9 @@ const pmessage_type safe_connector<Connector, Locker, true>::
             {
                 return pmessage;
             }
+            base_type::barrier().knock();
             lock.unlock();
-            if (!base_type::barrier().wait(ts - get_monotonic_time()))
+            if (!base_type::barrier().expect(ts - get_monotonic_time()))
             {
                 break;
             }
@@ -734,10 +735,10 @@ typedef connector::safe_connector<
     connector::io_connector<connector::single_connector_type> >     io_connector_type;
 typedef connector::safe_connector<
     connector::input_connector<connector::multi_connector_type>,
-    connector::sharable_locker_with_sharable_pop_interface>         in_multiout_connector_type;
+    connector::sharable_spinlocker_with_sharable_pop_interface>     in_multiout_connector_type;
 typedef connector::safe_connector<
     connector::output_connector<connector::multi_connector_type>,
-    connector::sharable_locker_with_sharable_pop_interface>         out_multiout_connector_type;
+    connector::sharable_spinlocker_with_sharable_pop_interface>     out_multiout_connector_type;
 
 typedef connector::pconnector_type pconnector_type;
 

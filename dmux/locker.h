@@ -140,14 +140,18 @@ class shared_barrier
 public:
     shared_barrier();
     void open(); ///< open the barrier
+    void knock() const; ///< knock on the barrier
     void wait() const; ///< wait until barrier opens
     const bool wait(const struct timespec& timeout) const; ///< wait until barrier opens
+    void expect() const; ///< expect the barrier to open
+    const bool expect(const struct timespec& timeout) const; ///< expect the barrier to open
 private:
     typedef boost::interprocess::interprocess_mutex locker_type;
     typedef boost::interprocess::interprocess_semaphore barrier_type;
     mutable locker_type m_locker;
     mutable barrier_type m_barrier;
-    mutable volatile uint32_t m_counter;
+    mutable volatile uint32_t m_counter1;
+    mutable volatile uint32_t m_counter2;
 };
 
 //==============================================================================
