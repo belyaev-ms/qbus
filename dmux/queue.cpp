@@ -92,7 +92,9 @@ void base_queue::clear()
 {
     if (m_ptr != NULL)
     {
-        memset(m_ptr, 0, size());
+        head(0);
+        tail(0);
+        count(0);
     }
 }
 
@@ -348,11 +350,6 @@ void *base_queue::slice(const pos_type index) const
 //virtual
 const bool base_queue::remove(const pos_type beg, const pos_type end)
 {
-//    if (beg == end)
-//    {
-//        clear(); ///<<< must be virtual
-//        return true;
-//    }
     if (beg == head())
     {
         head(end);
