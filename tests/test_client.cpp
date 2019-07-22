@@ -8,8 +8,13 @@ using namespace dmux;
 
 int main(int argc, char** argv)
 {
-    const char *name = argc > 1 ? argv[1] : "test";
-    pconnector_type pconnector = connector::make<in_multiout_connector_type>(name);
+    const char *name = "test";
+    pconnector_type pconnector = argc < 2 ?
+        connector::make<in_multiout_connector_type>(name) :
+        connector::make<connector::safe_connector<
+            connector::input_connector<connector::multi_connector_type>,
+            connector::sharable_locker_with_sharable_pop_interface> >(name);
+    
     if (pconnector->open())
     {
         boost::interprocess::named_mutex mutex(boost::interprocess::open_only, "test_client");
@@ -19,7 +24,7 @@ int main(int argc, char** argv)
         {
             boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);
             ts = get_monotonic_time();
-            std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: open" << std::endl;
+            std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: open " << argc << std::endl;
         }
         while (true)
         {

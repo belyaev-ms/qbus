@@ -1,5 +1,6 @@
-#define BOOST_TEST_DYN_LINK
-#define BOOST_TEST_MODULE ipc_test
+#ifndef IPC_TEST_H
+#define IPC_TEST_H
+
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <fstream>
@@ -26,7 +27,7 @@ const std::string test_client_log(const size_t i)
 void run_process(const std::string& s)
 {
     BOOST_TEST_MESSAGE("\trun process '" << s << "' ...");
-    const int result = std::system(s.c_str());
+    const int result = std::system((s + DMUX_IPC_TEST_PARAM).c_str());
     BOOST_TEST_MESSAGE("\tfinish process '" << s << "' " << result);
 }
 
@@ -127,3 +128,6 @@ BOOST_AUTO_TEST_CASE(one_server_and_few_clients)
             client_messages.begin(), client_messages.end());
     }
 }
+
+#endif /* IPC_TEST_H */
+
