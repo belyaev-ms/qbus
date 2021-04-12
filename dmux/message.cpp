@@ -176,7 +176,6 @@ const flags_type base_message::do_pack(const void *source, const size_t sz)
 /**
  * Unpack the data from the message
  * @param dest the pointer to the destination of data
- * @param size the size of the data
  */
 void base_message::unpack(void *dest) const
 {

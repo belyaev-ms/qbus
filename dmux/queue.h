@@ -30,7 +30,7 @@ public:
     virtual ~base_queue();
     virtual const size_t size() const; ///< get the size of the queue
     const pmessage_type add(const void *data, const size_t sz); ///< add data to the queue
-    const pmessage_type make(); ///< make a empty message
+    const pmessage_type make(); ///< make an empty message
     const pmessage_type get(); ///< get the next message
     void pop(); ///< remove the next message
     const pmessage_type get(const pos_type index); ///< get a message that has the index
