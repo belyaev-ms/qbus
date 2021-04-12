@@ -1,4 +1,4 @@
-#include "qbus/queue.h"
+#include "qbus_way/queue.h"
 #include <stdlib.h>
 #include <string.h>
 #include <boost/interprocess/detail/atomic.hpp>

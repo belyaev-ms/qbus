@@ -2,7 +2,7 @@
 #define BOOST_TEST_MODULE queue_test
 #include <boost/test/unit_test.hpp>
 
-#include "qbus/queue.h"
+#include "qbus_way/queue.h"
 #include <vector>
 
 typedef std::vector<uint8_t> buffer_t;

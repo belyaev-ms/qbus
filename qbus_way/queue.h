@@ -6,7 +6,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "qbus/message.h"
+#include "qbus_way/message.h"
 
 namespace qbus
 {

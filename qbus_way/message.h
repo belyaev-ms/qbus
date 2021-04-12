@@ -116,7 +116,6 @@ typename message<Queue>::message_desc_type
     message<Queue>::static_make_message(queue_type& queue, const void *data, const size_t size)
 {
     pmessage_type pmessage;
-    pmessage_type pprev_message;
     pmessage_type plast_message;
     region_type region;
     region_type *pprev_region = NULL;
@@ -134,22 +133,20 @@ typename message<Queue>::message_desc_type
             }
         } while (region.second <= HEADER_SIZE);
         part = std::min(rest, static_capacity(region.second));
-        plast_message = queue.make_message(queue.data(region.first), part);
+        pmessage_type pnext_message = queue.make_message(queue.data(region.first), part);
         if (!pmessage)
         {
-            pmessage = plast_message;
+            pmessage = pnext_message;
         }
         else
         {
-            pprev_message->attach(plast_message);
+            plast_message->attach(pnext_message);
         }
-        pprev_message = plast_message;
+        plast_message = pnext_message;
         rest -= part;
     }
-    if (pmessage->pack(data, size) != size)
-    {
-        abort();
-    }
+    const size_t packed_size = pmessage->pack(data, size);
+    assert(packed_size == size);
     return std::make_pair(pmessage, region.first + plast_message->size());
 }
 
@@ -164,7 +161,6 @@ typename message<Queue>::message_desc_type
     message<Queue>::static_get_message(const queue_type& queue)
 {
     pmessage_type pmessage;
-    pmessage_type pprev_message;
     pmessage_type plast_message;
     region_type region;
     region_type *pprev_region = NULL;
@@ -179,17 +175,17 @@ typename message<Queue>::message_desc_type
                 return std::make_pair(pmessage_type(), 0);
             }
         } while (region.second <= HEADER_SIZE);
-        plast_message = queue.make_message(queue.data(region.first));
+        pmessage_type pnext_message = queue.make_message(queue.data(region.first));
         if (!pmessage)
         {
-            pmessage = plast_message;
+            pmessage = pnext_message;
             assert(pmessage->flags() & FLG_HEAD);
         }
         else
         {
-            pprev_message->attach(plast_message);
+            plast_message->attach(pnext_message);
         }
-        pprev_message = plast_message;
+        plast_message = pnext_message;
     } while (!(plast_message->flags() & FLG_TAIL));
     return std::make_pair(pmessage, region.first + plast_message->size());
 }

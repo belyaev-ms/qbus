@@ -1,4 +1,4 @@
-#include "qbus/message.h"
+#include "qbus_way/message.h"
 #include <string.h>
 #include <boost/interprocess/detail/atomic.hpp>
 
