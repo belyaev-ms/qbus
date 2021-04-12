@@ -2,7 +2,7 @@
 #define BOOST_TEST_MODULE queue_test
 #include <boost/test/unit_test.hpp>
 
-#include "dmux/queue.h"
+#include "qbus/queue.h"
 #include <vector>
 
 typedef std::vector<uint8_t> buffer_t;
@@ -17,7 +17,7 @@ static buffer_t make_buffer(const size_t size)
     return buffer;
 }
 
-using namespace dmux;
+using namespace qbus;
 
 const size_t slice_size = 512;
 

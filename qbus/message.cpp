@@ -1,7 +1,7 @@
-#include "dmux/message.h"
+#include "qbus/message.h"
 #include <string.h>
 
-namespace dmux
+namespace qbus
 {
 namespace message
 {
@@ -207,4 +207,4 @@ const size_t base_message::capacity() const
 }
 
 } //namespace message
-} //namespace dmux
+} //namespace qbus

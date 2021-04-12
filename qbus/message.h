@@ -1,11 +1,11 @@
-#ifndef DMUX_MESSAGE_H
-#define DMUX_MESSAGE_H
+#ifndef QBUS_MESSAGE_H
+#define QBUS_MESSAGE_H
 
 #include <stddef.h>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 
-namespace dmux
+namespace qbus
 {
 namespace message
 {
@@ -120,8 +120,8 @@ pmessage_type message<Queue>::make_message()
 
 } //namespace message
 
-typedef dmux::message::pmessage_type pmessage_type;
+typedef qbus::message::pmessage_type pmessage_type;
 
-} //namespace dmux
+} //namespace qbus
 
-#endif /* DMUX_MESSAGE_H */
+#endif /* QBUS_MESSAGE_H */

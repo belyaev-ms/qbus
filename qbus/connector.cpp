@@ -1,7 +1,7 @@
-#include "dmux/connector.h"
+#include "qbus/connector.h"
 #include <boost/smart_ptr/detail/spinlock.hpp>
 
-namespace dmux
+namespace qbus
 {
 
 namespace connector
@@ -261,4 +261,4 @@ void *shared_connector::get_memory()
 }
 
 } //namespace connector
-} //namespace dmux
+} //namespace qbus

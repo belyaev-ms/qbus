@@ -1,7 +1,7 @@
-#include "dmux/connector.h"
+#include "qbus/connector.h"
 #include <iostream>
 
-using namespace dmux;
+using namespace qbus;
 
 int main(int argc, char** argv)
 {

@@ -2,7 +2,7 @@
 #define BOOST_TEST_MODULE connector_test
 #include <boost/test/unit_test.hpp>
 
-#include "dmux/connector.h"
+#include "qbus/connector.h"
 #include <vector>
 
 typedef std::vector<uint8_t> buffer_t;
@@ -17,7 +17,7 @@ static buffer_t make_buffer(const size_t size)
     return buffer;
 }
 
-using namespace dmux;
+using namespace qbus;
 
 BOOST_AUTO_TEST_CASE(simple_test)
 {

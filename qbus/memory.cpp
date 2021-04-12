@@ -1,7 +1,7 @@
-#include "dmux/memory.h"
+#include "qbus/memory.h"
 #include <boost/make_shared.hpp>
 
-namespace dmux
+namespace qbus
 {
 namespace memory
 {
@@ -106,4 +106,4 @@ void shared_memory::remove()
 }
 
 } //namespace memory
-} //namespace dmux
+} //namespace qbus

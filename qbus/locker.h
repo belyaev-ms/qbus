@@ -1,13 +1,13 @@
-#ifndef LOCKER_H
-#define LOCKER_H
+#ifndef QBUS_LOCKER_H
+#define QBUS_LOCKER_H
 
-#include "dmux/exceptions.h"
+#include "qbus/exceptions.h"
 #include <time.h>
 #include <boost/smart_ptr/detail/spinlock.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/interprocess_semaphore.hpp>
 
-namespace dmux
+namespace qbus
 {
 
 /**
@@ -434,7 +434,7 @@ const bool sharable_lock<Locker>::owns() const
     return m_locked;
 }
 
-} //namespace dmux
+} //namespace qbus
 
-#endif /* LOCKER_H */
+#endif /* QBUS_LOCKER_H */
 

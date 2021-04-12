@@ -15,7 +15,7 @@ add_definitions(-DQBUS_TEST_ENABLED)
 #macros for add an tool
 macro(qbus_add_tool tool)
     add_executable(${tool} ${tool}.cpp)
-    target_link_libraries(${tool} qbus)
+    target_link_libraries(${tool} qbus_way)
 endmacro(qbus_add_tool)
 #macros for add an unit-test
 macro(qbus_add_test test)
@@ -26,7 +26,7 @@ macro(qbus_add_test test)
         ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
         ${Boost_THREAD_LIBRARY} 
         pthread
-        qbus
+        qbus_way
     )
     add_test(${test} ${test})
 endmacro(qbus_add_test)

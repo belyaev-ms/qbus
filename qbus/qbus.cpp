@@ -1,7 +1,7 @@
-#include "dmux/message.h"
-#include "dmux/queue.h"
+#include "qbus/message.h"
+#include "qbus/queue.h"
 
-using namespace dmux::queue;
+using namespace qbus::queue;
 
 int main(int argc, char** argv)
 {

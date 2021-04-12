@@ -1,11 +1,11 @@
-#include "dmux/locker.h"
-#include "dmux/common.h"
+#include "qbus/locker.h"
+#include "qbus/common.h"
 
 #include <assert.h>
 #include <limits.h>
 #include <boost/thread/thread_time.hpp>
 
-namespace dmux
+namespace qbus
 {
 
 //==============================================================================
@@ -287,5 +287,5 @@ const bool shared_barrier::expect(const struct timespec& timeout) const
     return true;
 }
 
-} //namespace dmux
+} //namespace qbus
 

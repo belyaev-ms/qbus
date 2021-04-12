@@ -1,14 +1,14 @@
-#ifndef DMUX_QUEUE_H
-#define DMUX_QUEUE_H
+#ifndef QBUS_QUEUE_H
+#define QBUS_QUEUE_H
 
 #include <stddef.h>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#include "dmux/message.h"
+#include "qbus/message.h"
 
-namespace dmux
+namespace qbus
 {
 namespace queue
 {
@@ -248,7 +248,7 @@ const pqueue_type make(const void *ptr, const size_t size, const size_t count)
 
 typedef queue::pqueue_type pqueue_type;
 
-} //namespace dmux
+} //namespace qbus
 
-#endif /* DMUX_QUEUE_H */
+#endif /* QBUS_QUEUE_H */
 

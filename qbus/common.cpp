@@ -1,7 +1,7 @@
-#include "dmux/common.h"
+#include "qbus/common.h"
 #include <boost/smart_ptr/detail/spinlock.hpp>
 
-namespace dmux
+namespace qbus
 {
 
 const bool operator==(const struct timespec& ts1, const struct timespec& ts2)
@@ -74,4 +74,4 @@ const struct timespec get_monotonic_time()
     return ts;
 }
 
-} //namespace dmux
+} //namespace qbus

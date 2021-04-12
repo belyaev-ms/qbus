@@ -1,9 +1,9 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef QBUS_COMMON_H
+#define QBUS_COMMON_H
 
 #include <time.h>
 
-namespace dmux
+namespace qbus
 {
 
 const bool operator==(const struct timespec& ts1, const struct timespec& ts2);
@@ -16,8 +16,7 @@ const struct timespec operator+(const struct timespec& ts1, const struct timespe
 const struct timespec operator-(const struct timespec& ts1, const struct timespec& ts2);
 const struct timespec get_monotonic_time(); ///< get the current monotonic time
 
-} //namespace dmux
+} //namespace qbus
 
-
-#endif /* COMMON_H */
+#endif /* QBUS_COMMON_H */
 

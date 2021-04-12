@@ -1,10 +1,10 @@
-#include "dmux/connector.h"
+#include "qbus/connector.h"
 #include <iostream>
 #include <boost/lexical_cast.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 
-using namespace dmux;
+using namespace qbus;
 
 int main(int argc, char** argv)
 {

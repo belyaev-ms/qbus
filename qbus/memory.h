@@ -1,5 +1,5 @@
-#ifndef DMUX_MEMORY_H
-#define DMUX_MEMORY_H
+#ifndef QBUS_MEMORY_H
+#define QBUS_MEMORY_H
 
 #include <stddef.h>
 #include <string>
@@ -7,7 +7,7 @@
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/shared_memory_object.hpp>
 
-namespace dmux
+namespace qbus
 {
 namespace memory
 {
@@ -39,7 +39,7 @@ private:
 typedef memory::shared_memory shared_memory_type;
 typedef boost::shared_ptr<shared_memory_type> pshared_memory_type;
 
-} //namespace dmux
+} //namespace qbus
 
-#endif /* DMUX_MEMORY_H */
+#endif /* QBUS_MEMORY_H */
 

@@ -1,10 +1,10 @@
-#ifndef DMUX_CONNECTOR_H
-#define DMUX_CONNECTOR_H
+#ifndef QBUS_CONNECTOR_H
+#define QBUS_CONNECTOR_H
 
-#include "dmux/queue.h"
-#include "dmux/memory.h"
-#include "dmux/locker.h"
-#include "dmux/common.h"
+#include "qbus/queue.h"
+#include "qbus/memory.h"
+#include "qbus/locker.h"
+#include "qbus/common.h"
 #include <time.h>
 #include <string>
 #include <boost/shared_ptr.hpp>
@@ -12,7 +12,7 @@
 #include <boost/interprocess/sync/sharable_lock.hpp>
 #include <boost/interprocess/sync/interprocess_upgradable_mutex.hpp>
 
-namespace dmux
+namespace qbus
 {
 
 namespace connector
@@ -742,7 +742,7 @@ typedef connector::safe_connector<
 
 typedef connector::pconnector_type pconnector_type;
 
-} //namespace dmux
+} //namespace qbus
 
-#endif /* DMUX_CONNECTOR_H */
+#endif /* QBUS_CONNECTOR_H */
 

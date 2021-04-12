@@ -1,8 +1,8 @@
-#ifndef EXCEPTIONS_H
-#define EXCEPTIONS_H
+#ifndef QBUS_EXCEPTIONS_H
+#define QBUS_EXCEPTIONS_H
 #include <exception>
 
-namespace dmux
+namespace qbus
 {
 
 class base_exception : public std::exception {};
@@ -12,11 +12,11 @@ class lock_exception : public base_exception
 public:
     virtual const char* what() const throw()
     {
-        return "dmux::lock_exception";
+        return "qbus::lock_exception";
     }
 };
 
-} //namespace dmux
+} //namespace qbus
 
-#endif /* EXCEPTIONS_H */
+#endif /* QBUS_EXCEPTIONS_H */
 

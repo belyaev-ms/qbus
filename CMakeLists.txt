@@ -24,7 +24,7 @@ if (Boost_FOUND)
 endif (Boost_FOUND)
 
 set(CMAKE_CXX_FLAGS "-Wall -Werror")
-add_subdirectory(dmux)
+add_subdirectory(qbus)
 add_subdirectory(qbus_way)
 if (QBUS_EXAMPLES_ENABLED)
     add_subdirectory(examples)

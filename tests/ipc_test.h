@@ -1,5 +1,5 @@
-#ifndef IPC_TEST_H
-#define IPC_TEST_H
+#ifndef QBUS_IPC_TEST_H
+#define QBUS_IPC_TEST_H
 
 #include <boost/test/unit_test.hpp>
 #include <iostream>
@@ -27,7 +27,7 @@ const std::string test_client_log(const size_t i)
 void run_process(const std::string& s)
 {
     BOOST_TEST_MESSAGE("\trun process '" << s << "' ...");
-    const int result = std::system((s + DMUX_IPC_TEST_PARAM).c_str());
+    const int result = std::system((s + QBUS_IPC_TEST_PARAM).c_str());
     BOOST_TEST_MESSAGE("\tfinish process '" << s << "' " << result);
 }
 
@@ -129,5 +129,5 @@ BOOST_AUTO_TEST_CASE(one_server_and_few_clients)
     }
 }
 
-#endif /* IPC_TEST_H */
+#endif /* QBUS_IPC_TEST_H */
 

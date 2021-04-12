@@ -1,12 +1,12 @@
-#include "dmux/queue.h"
+#include "qbus/queue.h"
 #include <stdlib.h>
 #include <string.h>
 #include <boost/interprocess/detail/atomic.hpp>
-#ifdef DMUX_TEST_ENABLED
+#ifdef QBUS_TEST_ENABLED
 #include <iostream>
 #endif
 
-namespace dmux
+namespace qbus
 {
 namespace queue
 {
@@ -557,7 +557,7 @@ const bool queue::remove(const pos_type beg, const pos_type end)
         slice_tail.prev(end_prev);
         tail(beg);
     }
-#ifdef DMUX_TEST_ENABLED
+#ifdef QBUS_TEST_ENABLED
     std::cout << "{" << std::endl;
     pos_type i = head();
     size_t count = 0;
@@ -926,4 +926,4 @@ size_t shared_queue::slice_type::static_size()
 }
 
 } //namespace queue
-} //namespace dmux
+} //namespace qbus
