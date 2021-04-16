@@ -486,6 +486,23 @@ size_t shared_queue::count() const
     return counter() - m_counter;
 }
 
+template <typename T>
+class rollback
+{
+public:
+    rollback(T& value) : 
+        m_value(value),
+        m_store(value)
+    {}
+    ~rollback()
+    {
+        m_value = m_store;
+    }
+private:
+    T& m_value;
+    T m_store;
+};
+
 /**
  * Collect garbage
  */
@@ -495,9 +512,10 @@ void shared_queue::clean()
     size_t cnt = base_queue::count();
     if (cnt > 0)
     {
-        const pos_type store_head = m_head;
-        m_head = pos_type(-1); ///< need to add guard that could restore m_head when wold be throwed an exception
-        --m_counter; ///< for empty
+        rollback<pos_type> head(m_head);
+        rollback<uint32_t> counter(m_counter);
+        m_head = pos_type(-1);
+        --m_counter;
         while (cnt-- > 0)
         {
             message_desc_type message_desc = get_message();
@@ -508,8 +526,6 @@ void shared_queue::clean()
             base_queue::head(message_desc.second);
             base_queue::count(cnt);
         }
-        m_head = store_head;
-        ++m_counter;
     }
 }
 
