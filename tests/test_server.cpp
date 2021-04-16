@@ -15,7 +15,7 @@ int main(int argc, char** argv)
             connector::output_connector<connector::multi_connector_type>,
             connector::sharable_locker_with_sharable_pop_interface> >(name);
     
-    if (pconnector->create(512, 32))
+    if (pconnector->create(0, 32 * 512))
     {
         boost::interprocess::named_mutex mutex(boost::interprocess::open_only, "test_server");
         struct timespec timeout = { 0, 0 };
@@ -31,13 +31,14 @@ int main(int argc, char** argv)
             const std::string s = "the test message " + boost::lexical_cast<std::string>(i);
             ts = get_monotonic_time();
             std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: " << s << std::endl;
-            if (!pconnector->add(&s[0], s.size() + 1, timeout))
+            if (!pconnector->add(0, &s[0], s.size() + 1, timeout))
             {
                 ts = get_monotonic_time();
                 std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: break" << std::endl;
                 boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);
                 return -1;
             }
+            pconnector->pop();
         }
         {
             boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);

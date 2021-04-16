@@ -29,10 +29,10 @@ shared_memory::~shared_memory()
 
 /**
  * Create the memory
- * @param sz the size of the memory
+ * @param size the size of the memory
  * @return the result of the creating
  */
-const bool shared_memory::create(const size_t sz)
+bool shared_memory::create(const size_t size)
 {
     using namespace boost::interprocess;
     if (!m_pmemory)
@@ -41,7 +41,7 @@ const bool shared_memory::create(const size_t sz)
         {
             pmemory_type pmemory = boost::make_shared<memory_type>(create_only,
                     m_name.c_str(), read_write);
-            pmemory->truncate(sz);
+            pmemory->truncate(size);
             m_pregion = boost::make_shared<region_type>(*pmemory, read_write);
             m_pmemory = pmemory;
             return true;
@@ -57,7 +57,7 @@ const bool shared_memory::create(const size_t sz)
 /**
  * Open the memory
  */
-const bool shared_memory::open()
+bool shared_memory::open()
 {
     using namespace boost::interprocess;
     if (!m_pmemory)
@@ -92,7 +92,7 @@ void *shared_memory::get()
  * Get the size of the memory
  * @return the size of the memory
  */
-const size_t shared_memory::size() const
+size_t shared_memory::size() const
 {
     return m_pregion ? m_pregion->get_size() : 0;
 }

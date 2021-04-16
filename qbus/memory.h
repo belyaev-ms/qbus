@@ -17,9 +17,9 @@ class shared_memory
 public:
     explicit shared_memory(const std::string& name);
     virtual ~shared_memory();
-    const bool create(const size_t sz); ///< create the memory
-    const bool open(); ///< open the memory
-    const size_t size() const; ///< get the size of the memory
+    bool create(const size_t size); ///< create the memory
+    bool open(); ///< open the memory
+    size_t size() const; ///< get the size of the memory
     void *get(); ///< get the pointer to the memory
 protected:
     void remove(); ///< remove the memory

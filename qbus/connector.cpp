@@ -43,22 +43,22 @@ const std::string& base_connector::name() const
  * Get the type of the connecter
  * @return the type of the connecter
  */
-const direction_type base_connector::type() const
+direction_type base_connector::type() const
 {
     return m_type;
 }
 
 /**
  * Create the connector
- * @param size the size of a data blocks
- * @param count the count of data blocks
+ * @param cid the identifier of the connector
+ * @param size the size of a queue
  * @return the result of the creating
  */
-const bool base_connector::create(const size_t size, const size_t count)
+bool base_connector::create(const id_type cid, const size_t size)
 {
     if (!m_opened)
     {
-        m_opened = do_create(size, count);
+        m_opened = do_create(cid, size);
         return m_opened;
     }
     return false;
@@ -68,7 +68,7 @@ const bool base_connector::create(const size_t size, const size_t count)
  * Open the connector
  * @return the result of the opening
  */
-const bool base_connector::open()
+bool base_connector::open()
 {
     if (!m_opened)
     {
@@ -80,28 +80,30 @@ const bool base_connector::open()
 
 /**
  * Add data to the connector
+ * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
  * @return result of the adding
  */
-const bool base_connector::add(const void *data, const size_t size)
+bool base_connector::add(const tag_type tag, const void *data, const size_t size)
 {
     return (m_opened && (CON_OUT == m_type || CON_IO == m_type)) ?
-        do_add(data, size) : false;
+        do_add(tag, data, size) : false;
 }
 
 /**
  * Add data to the connector
+ * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
  * @param timeout the allowable timeout of the adding
  * @return result of the adding
  */
-const bool base_connector::add(const void *data, const size_t size,
+bool base_connector::add(const tag_type tag, const void *data, const size_t size,
     const struct timespec& timeout)
 {
     return (m_opened && (CON_OUT == m_type || CON_IO == m_type)) ?
-        do_timed_add(data, size, timeout) : false;
+        do_timed_add(tag, data, size, timeout) : false;
 }
 
 /**
@@ -129,7 +131,7 @@ const pmessage_type base_connector::get(const struct timespec& timeout) const
  * Remove the next message from the connector
  * @return the result of the removing
  */
-const bool base_connector::pop()
+bool base_connector::pop()
 {
     return (m_opened && (CON_IN == m_type || CON_IO == m_type)) ?
         do_pop() : false;
@@ -140,7 +142,7 @@ const bool base_connector::pop()
  * @param timeout the allowable timeout of the removing
  * @return the result of the removing
  */
-const bool base_connector::pop(const struct timespec& timeout)
+bool base_connector::pop(const struct timespec& timeout)
 {
     return (m_opened && (CON_IN == m_type || CON_IO == m_type)) ?
         do_timed_pop(timeout) : false;
@@ -148,20 +150,21 @@ const bool base_connector::pop(const struct timespec& timeout)
 
 /**
  * Add data to the connector
+ * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
  * @param timeout the allowable timeout of the adding
  * @return result of the adding
  */
 //virtual
-const bool base_connector::do_timed_add(const void *data, const size_t size,
-    const struct timespec& timeout)
+bool base_connector::do_timed_add(const tag_type tag, const void *data, 
+    const size_t size, const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     unsigned int k = 0;
     while (get_monotonic_time() < ts)
     {
-        if (do_add(data, size))
+        if (do_add(tag, data, size))
         {
             return true;
         }
@@ -199,7 +202,7 @@ const pmessage_type base_connector::do_timed_get(const struct timespec& timeout)
  * @return the result of the removing
  */
 //virtual
-const bool base_connector::do_timed_pop(const struct timespec& timeout)
+bool base_connector::do_timed_pop(const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     unsigned int k = 0;
@@ -230,14 +233,14 @@ shared_connector::shared_connector(const std::string& name, const direction_type
 
 /**
  * Create the connector
- * @param size the size of a data blocks
- * @param count the count of data blocks
+ * @param cid the identifier of the connector
+ * @param size the size of a queue
  * @return the result of the creating
  */
 //virtual
-const bool shared_connector::do_create(const size_t size, const size_t count)
+bool shared_connector::do_create(const id_type cid, const size_t size)
 {
-    return m_memory.create(memory_size(size, count));
+    return m_memory.create(memory_size(size));
 }
 
 /**
@@ -245,7 +248,7 @@ const bool shared_connector::do_create(const size_t size, const size_t count)
  * @return the result of the opening
  */
 //virtual
-const bool shared_connector::do_open()
+bool shared_connector::do_open()
 {
     return m_memory.open();
 }

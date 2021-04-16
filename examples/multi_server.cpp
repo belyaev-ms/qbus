@@ -7,7 +7,7 @@ int main(int argc, char** argv)
 {
     const char *name = argc > 1 ? argv[1] : "test";
     pconnector_type pconnector = connector::make<out_multiout_connector_type>(name);
-    if (pconnector->create(512, 32))
+    if (pconnector->create(0, 512))
     {
         struct timespec timeout = { 0, 0 };
         timeout.tv_sec = 1;
@@ -20,7 +20,7 @@ int main(int argc, char** argv)
             {
                 break;
             }
-            pconnector->add(&s[0], s.size() + 1, timeout);
+            pconnector->add(0, &s[0], s.size() + 1, timeout);
         }
     }
     return 0;

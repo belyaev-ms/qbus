@@ -1,29 +1,34 @@
 #include "qbus/message.h"
 #include <string.h>
+#include <boost/interprocess/detail/atomic.hpp>
 
 namespace qbus
 {
 namespace message
 {
-
+    
+//==============================================================================
+//  base_message
+//==============================================================================
 /**
  * Constructor
+ * @param ptr the pointer to the raw message
  */
-base_message::base_message() :
-    m_ptr(NULL),
-    m_size(0)
+base_message::base_message(void *ptr) :
+    m_ptr(reinterpret_cast<uint8_t*>(ptr))
 {
 }
 
 /**
  * Constructor
  * @param ptr the pointer to the raw message
- * @param sz the size of the raw message
+ * @param cpct the capacity of the message
  */
-base_message::base_message(void *ptr, const size_t sz) :
-    m_ptr(reinterpret_cast<uint8_t*>(ptr)),
-    m_size(sz)
+base_message::base_message(void *ptr, const size_t cpct) :
+    m_ptr(reinterpret_cast<uint8_t*>(ptr))
 {
+    memset(ptr, 0, HEADER_SIZE);
+    capacity(cpct);
 }
 
 /**
@@ -32,32 +37,31 @@ base_message::base_message(void *ptr, const size_t sz) :
 //virtual
 base_message::~base_message()
 {
-
 }
 
 /**
- * Get the identifier of the message
- * @return the identifier of the message
+ * Get the tag of the message
+ * @return the tag of the message
  */
-const id_type base_message::id() const
+tag_type base_message::tag() const
 {
-    return *reinterpret_cast<const id_type*>(m_ptr + ID_OFFSET);
+    return *reinterpret_cast<const tag_type*>(m_ptr + TAG_OFFSET);
 }
 
 /**
- * Set the identifier of the message
- * @param id the identifier of the message
+ * Set the tag of the message
+ * @param value the tag of the message
  */
-void base_message::id(const id_type id)
+void base_message::tag(const tag_type value)
 {
-    *reinterpret_cast<id_type*>(m_ptr + ID_OFFSET) = id;
+    *reinterpret_cast<tag_type*>(m_ptr + TAG_OFFSET) = value;
 }
 
 /**
  * Get the flags of the message
  * @return the flags of the message
  */
-const flags_type base_message::flags() const
+flags_type base_message::flags() const
 {
     return *reinterpret_cast<const flags_type*>(m_ptr + FLAGS_OFFSET);
 }
@@ -72,21 +76,48 @@ void base_message::flags(const flags_type flags)
 }
 
 /**
- * Get the size of data of the message
- * @return the size of data of the message
+ * Get the capacity of the message
+ * @return the capacity of the message
  */
-const size_t base_message::size() const
+size_t base_message::capacity() const
 {
-    return *reinterpret_cast<const uint32_t*>(m_ptr + COUNT_OFFSET);
+    return *reinterpret_cast<const uint32_t*>(m_ptr + CAPACITY_OFFSET);
 }
 
 /**
- * Set the size of data of the message
- * @param sz the size of data of the message
+ * Set the capacity of the message
+ * @param value the capacity of the message
  */
-void base_message::size(const size_t sz)
+void base_message::capacity(const size_t value)
 {
-    *reinterpret_cast<uint32_t*>(m_ptr + COUNT_OFFSET) = sz;
+    *reinterpret_cast<uint32_t*>(m_ptr + CAPACITY_OFFSET) = value;
+}
+
+/**
+ * Get the reference counter of the message
+ * @return the reference counter of the message
+ */
+size_t base_message::counter() const
+{
+    return boost::interprocess::ipcdetail::atomic_read32(reinterpret_cast<uint32_t*>(m_ptr + COUNTER_OFFSET));
+}
+
+/**
+ * Increment reference counter of the message
+ * @return the reference counter of the message
+ */
+size_t base_message::inc_counter()
+{
+    return boost::interprocess::ipcdetail::atomic_inc32(reinterpret_cast<uint32_t*>(m_ptr + COUNTER_OFFSET)) + 1;
+}
+
+/**
+ * Decrement reference counter of the message
+ * @return the reference counter of the message
+ */
+size_t base_message::dec_counter()
+{
+    return boost::interprocess::ipcdetail::atomic_dec32(reinterpret_cast<uint32_t*>(m_ptr + COUNTER_OFFSET)) - 1;
 }
 
 /**
@@ -108,103 +139,93 @@ const void *base_message::data() const
 }
 
 /**
- * Clear the message
- */
-void base_message::clear()
-{
-    if (m_ptr != NULL && m_size > 0)
-    {
-        memset(m_ptr, 0, m_size);
-    }
-}
-
-/**
- * Attach a message
- * @param pmessage the message
- */
-void base_message::attach(const pmessage_type pmessage)
-{
-    if (pmessage && !(pmessage->flags() & FLG_HEAD))
-    {
-        m_pmessage = pmessage;
-    }
-}
-
-/**
  * Pack the data to the message
  * @param source the pointer to the source of data
  * @param size the size of the data
+ * @return the size of the packed data
  */
-void base_message::pack(const void *source, const size_t size)
-{
-    flags(do_pack(source, size));
-}
-
-/**
- * Pack the data to the message
- * @param source the pointer to the source of data
- * @param sz the size of the data
- * @return the flags of the message
- */
-const flags_type base_message::do_pack(const void *source, const size_t sz)
+size_t base_message::pack(const void *source, const size_t size)
 {
     const uint8_t *ptr = reinterpret_cast<const uint8_t*>(source);
     const size_t cpct = capacity();
-    if (sz <= cpct)
+    if (size <= cpct)
     {
-        size(sz);
-        if (ptr != NULL)
-        {
-            memcpy(data(), ptr, sz);
-        }
-        return FLG_HEAD | FLG_TAIL;
+        memcpy(data(), ptr, size);
+        flags(FLG_HEAD | FLG_TAIL);
+        return size;
     }
     else
     {
-        size(cpct);
-        if (ptr != NULL)
+        size_t rest_size = 0;
+        memcpy(data(), ptr, cpct);
+        flags(FLG_HEAD);
+        if (m_pmessage)
         {
-            memcpy(data(), ptr, cpct);
+            rest_size = m_pmessage->pack(ptr + cpct, size - cpct);
+            m_pmessage->flags(m_pmessage->flags() & ~FLG_HEAD);
         }
-        m_pmessage = make_message();
-        const flags_type flgs = m_pmessage->do_pack(ptr + cpct, sz - cpct);
-        m_pmessage->flags(flgs & ~FLG_HEAD);
-        return FLG_HEAD;
+        return cpct + rest_size;
     }
 }
 
 /**
  * Unpack the data from the message
  * @param dest the pointer to the destination of data
+ * @return size the size of the unpacked data
  */
-void base_message::unpack(void *dest) const
+size_t base_message::unpack(void *dest) const
 {
     uint8_t *ptr = reinterpret_cast<uint8_t*>(dest);
-    const size_t sz = size();
-    memcpy(ptr, data(), sz);
-    if (m_pmessage)
-    {
-        m_pmessage->unpack(ptr + sz);
-    }
+    const size_t cpct = capacity();
+    memcpy(ptr, data(), cpct);
+    return cpct + (m_pmessage ? m_pmessage->unpack(ptr + cpct) : 0);
 }
 
 /**
  * Get the size of attached data
  * @return the size of attached data
  */
-const size_t base_message::data_size() const
+size_t base_message::data_size() const
 {
-    return m_pmessage ? size() + m_pmessage->data_size() : size();
+    return total_capacity();
 }
 
 /**
- * Get the capacity of the message
- * @return the capacity of the message
+ * Get total capacity of all chained messages
+ * @return the total capacity of all chained messages
  */
-const size_t base_message::capacity() const
+size_t base_message::total_capacity() const
 {
-    return m_size - HEADER_SIZE;
+    return capacity() + (m_pmessage ? m_pmessage->total_capacity() : 0);
+}
+
+/**
+ * Get the size of the message
+ * @return the size of attached data
+ */
+size_t base_message::size() const
+{
+    return static_size(capacity());
+}
+
+/**
+ * Get total size of all chained messages
+ * @return the total size of all chained messages
+ */
+size_t base_message::total_size() const
+{
+    return static_size(capacity()) + (m_pmessage ? m_pmessage->total_size() : 0);
+}
+
+/**
+ * Attach the message
+ * @param pmessage the attached message
+ */
+void base_message::attach(pmessage_type pmessage)
+{
+    m_pmessage = pmessage;
 }
 
 } //namespace message
+
 } //namespace qbus

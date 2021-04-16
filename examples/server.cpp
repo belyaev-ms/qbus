@@ -7,7 +7,7 @@ int main(int argc, char** argv)
 {
     const char *name = argc > 1 ? argv[1] : "test";
     pconnector_type pconnector = connector::make<out_connector_type>(name);
-    if (pconnector->create(512, 32))
+    if (pconnector->create(0, 512))
     {
         while (true)
         {
@@ -18,7 +18,7 @@ int main(int argc, char** argv)
             {
                 break;
             }
-            pconnector->add(&s[0], s.size() + 1);
+            pconnector->add(0, &s[0], s.size() + 1);
         }
     }
     return 0;
