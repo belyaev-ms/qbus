@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(basic_test)
     
     const queue::tag_type tag = 2;
     buffer_t message_buffer = make_buffer(32);
-    BOOST_REQUIRE(queue1.add(tag, &message_buffer[0], message_buffer.size()));
+    BOOST_REQUIRE(queue1.push(tag, &message_buffer[0], message_buffer.size()));
     BOOST_REQUIRE_EQUAL(queue1.count(), 1);
     BOOST_REQUIRE_EQUAL(queue2.count(), 1);
     BOOST_REQUIRE(!queue1.empty());
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(basic_test)
     BOOST_REQUIRE(queue2.empty());
 }
 
-BOOST_AUTO_TEST_CASE(add_pop_message_test)
+BOOST_AUTO_TEST_CASE(push_pop_message_test)
 {
     const size_t capacity = 1024;
     const queue::id_type id = 1;
@@ -84,21 +84,21 @@ BOOST_AUTO_TEST_CASE(add_pop_message_test)
     queue::simple_queue queue(id, &queue_buffer[0], capacity);
     size_t count = capacity / message::base_message::static_size(message_size);
     
-    BOOST_TEST_MESSAGE("add " << count << " messages each a size = " << message_size);
+    BOOST_TEST_MESSAGE("push " << count << " messages each a size = " << message_size);
     for (size_t i = 0; i < count; ++i)
     {
-        BOOST_TEST_MESSAGE("add " << i + 1 << "/" << count << " a message");
+        BOOST_TEST_MESSAGE("push " << i + 1 << "/" << count << " a message");
         BOOST_REQUIRE_EQUAL(queue.count(), i);
         buffer_t message_buffer = make_buffer(message_size);
-        BOOST_REQUIRE(queue.add(i, &message_buffer[0], message_buffer.size()));
+        BOOST_REQUIRE(queue.push(i, &message_buffer[0], message_buffer.size()));
         BOOST_REQUIRE_EQUAL(queue.count(), i + 1);
     }
     
-    BOOST_TEST_MESSAGE("try to add the " << count + 1 << " message");
+    BOOST_TEST_MESSAGE("try to push the " << count + 1 << " message");
     {
         BOOST_REQUIRE_EQUAL(queue.count(), count);
         buffer_t message_buffer = make_buffer(message_size);
-        BOOST_REQUIRE(!queue.add(count, &message_buffer[0], message_buffer.size()));
+        BOOST_REQUIRE(!queue.push(count, &message_buffer[0], message_buffer.size()));
         BOOST_REQUIRE_EQUAL(queue.count(), count);
     }
     
@@ -120,12 +120,12 @@ BOOST_AUTO_TEST_CASE(add_pop_message_test)
     }
     
     count = 3 * count / 2;
-    BOOST_TEST_MESSAGE("add and pop " << count << " messages");
+    BOOST_TEST_MESSAGE("push and pop " << count << " messages");
     for (size_t i = 0; i < count; ++i)
     {
-        BOOST_TEST_MESSAGE("add " << i + 1 << " a message");
+        BOOST_TEST_MESSAGE("push " << i + 1 << " a message");
         buffer_t message_buffer = make_buffer(message_size);
-        BOOST_REQUIRE(queue.add(i, &message_buffer[0], message_buffer.size()));
+        BOOST_REQUIRE(queue.push(i, &message_buffer[0], message_buffer.size()));
         BOOST_REQUIRE_EQUAL(queue.count(), 1);
         BOOST_REQUIRE(!queue.empty());
         BOOST_TEST_MESSAGE("pop " << i + 1 << " a message");
@@ -142,10 +142,10 @@ BOOST_AUTO_TEST_CASE(add_pop_message_test)
     }
     
     const size_t large_split_message_size = capacity - 2 * header_size;
-    BOOST_TEST_MESSAGE("add a large split message that has a size = " << large_split_message_size);
+    BOOST_TEST_MESSAGE("push a large split message that has a size = " << large_split_message_size);
     {
         buffer_t message_buffer = make_buffer(large_split_message_size);
-        BOOST_REQUIRE(queue.add(0, &message_buffer[0], message_buffer.size()));
+        BOOST_REQUIRE(queue.push(0, &message_buffer[0], message_buffer.size()));
         BOOST_REQUIRE_EQUAL(queue.count(), 1);
         BOOST_REQUIRE(!queue.empty());
         BOOST_TEST_MESSAGE("pop the large split message");
@@ -161,18 +161,18 @@ BOOST_AUTO_TEST_CASE(add_pop_message_test)
         BOOST_REQUIRE(queue.empty());
     }
     
-    BOOST_TEST_MESSAGE("add a holly message");
+    BOOST_TEST_MESSAGE("push a holly message");
     {
         const size_t size1 = capacity / 2 - header_size - header_size / 2;
-        BOOST_TEST_MESSAGE("add a message on the border");
+        BOOST_TEST_MESSAGE("push a message on the border");
         buffer_t message_buffer1 = make_buffer(size1);
-        BOOST_REQUIRE(queue.add(0, &message_buffer1[0], message_buffer1.size()));
+        BOOST_REQUIRE(queue.push(0, &message_buffer1[0], message_buffer1.size()));
         BOOST_REQUIRE_EQUAL(queue.count(), 1);
         BOOST_REQUIRE(!queue.empty());
-        BOOST_TEST_MESSAGE("add a holly message");
+        BOOST_TEST_MESSAGE("push a holly message");
         const size_t size2 = capacity / 2 - 2 * header_size;
         buffer_t message_buffer2 = make_buffer(size2);
-        BOOST_REQUIRE(queue.add(1, &message_buffer2[0], message_buffer2.size()));
+        BOOST_REQUIRE(queue.push(1, &message_buffer2[0], message_buffer2.size()));
         BOOST_REQUIRE_EQUAL(queue.count(), 2);
         BOOST_REQUIRE(!queue.empty());
         BOOST_TEST_MESSAGE("pop the holly message");
@@ -216,7 +216,7 @@ BOOST_AUTO_TEST_CASE(one_producer_and_one_consumer_test)
     size_t count = capacity / message::base_message::static_size(message_size);
     for (size_t i = 0; i < count; ++i)
     {
-        BOOST_REQUIRE(producer_queue.add(0, &buffer[0], buffer.size()));
+        BOOST_REQUIRE(producer_queue.push(0, &buffer[0], buffer.size()));
         BOOST_REQUIRE_EQUAL(producer_queue.count(), i + 1);
         BOOST_REQUIRE_EQUAL(consumer_queue.count(), i + 1);
     }
@@ -231,7 +231,7 @@ BOOST_AUTO_TEST_CASE(one_producer_and_one_consumer_test)
     }
     for (size_t i = 0; i < count; ++i)
     {
-        BOOST_REQUIRE(producer_queue.add(0, &buffer[0], buffer.size()));
+        BOOST_REQUIRE(producer_queue.push(0, &buffer[0], buffer.size()));
         pmessage = consumer_queue.get();
         BOOST_REQUIRE(pmessage);
         BOOST_REQUIRE_EQUAL(pmessage->data_size(), buffer.size());

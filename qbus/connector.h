@@ -43,8 +43,8 @@ public:
     direction_type type() const; ///< get the type of the connecter
     bool create(const id_type cid, size_t size); ///< create the connector
     bool open(); ///< open the connector
-    bool add(const tag_type tag, const void *data, const size_t size); ///< add data to the connector
-    bool add(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< add data to the connector
+    bool push(const tag_type tag, const void *data, const size_t size); ///< push data to the connector
+    bool push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the connector
     const pmessage_type get() const; ///< get the next message from the connector
     const pmessage_type get(const struct timespec& timeout) const; ///< get the next message from the connector
     bool pop(); ///< remove the next message from the connector
@@ -53,8 +53,8 @@ public:
 protected:
     virtual bool do_create(const id_type cid, const size_t size) = 0; ///< create the connector
     virtual bool do_open() = 0; ///< open the connector
-    virtual bool do_add(const tag_type tag, const void *data, const size_t size) = 0; ///< add data to the connector
-    virtual bool do_timed_add(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< add data to the connector
+    virtual bool do_push(const tag_type tag, const void *data, const size_t size) = 0; ///< push data to the connector
+    virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the connector
     virtual const pmessage_type do_get() const = 0; ///< get the next message from the connector
     virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the connector
     virtual bool do_pop() = 0; ///< remove the next message from the connector
@@ -99,7 +99,7 @@ protected:
     virtual bool do_create(const id_type cid, const size_t size); ///< create the connector
     virtual bool do_open(); ///< open the connector
     virtual size_t memory_size(const size_t size) const; ///< get the size of the shared memory
-    virtual bool do_add(const tag_type tag, const void *data, const size_t sz); ///< add data to the connector
+    virtual bool do_push(const tag_type tag, const void *data, const size_t sz); ///< push data to the connector
     virtual const pmessage_type do_get() const; ///< get the next message from the connector
     virtual bool do_pop(); ///< remove the next message from the connector
 private:
@@ -131,7 +131,7 @@ class input_connector : public Connector
 public:
     explicit input_connector(const std::string& name);
 protected:
-    virtual bool do_add(const tag_type tag, const void *data, const size_t size); ///< add data to the connector
+    virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the connector
 };
 
 /**
@@ -175,7 +175,7 @@ protected:
         {}
     };
 public:
-    typedef scoped_try_lock lock_to_add_type;
+    typedef scoped_try_lock lock_to_push_type;
     typedef scoped_try_lock lock_to_pop_type;
     typedef sharable_try_lock lock_to_get_type;
 };
@@ -186,7 +186,7 @@ public:
 class sharable_locker_with_sharable_pop_interface : public sharable_locker_interface
 {
 public:
-    typedef scoped_try_lock lock_to_add_type;
+    typedef scoped_try_lock lock_to_push_type;
     typedef sharable_try_lock lock_to_pop_type;
     typedef sharable_try_lock lock_to_get_type;
 };
@@ -199,7 +199,7 @@ class sharable_spinlocker_interface : public base_locker_interface<true>
 public:
     typedef shared_locker locker_type;
 public:
-    typedef scoped_try_lock<locker_type> lock_to_add_type;
+    typedef scoped_try_lock<locker_type> lock_to_push_type;
     typedef scoped_try_lock<locker_type> lock_to_pop_type;
     typedef sharable_try_lock<locker_type> lock_to_get_type;
 };
@@ -212,7 +212,7 @@ class sharable_spinlocker_with_sharable_pop_interface : public base_locker_inter
 public:
     typedef shared_locker locker_type;
 public:
-    typedef scoped_try_lock<locker_type> lock_to_add_type;
+    typedef scoped_try_lock<locker_type> lock_to_push_type;
     typedef sharable_try_lock<locker_type> lock_to_pop_type;
     typedef sharable_try_lock<locker_type> lock_to_get_type;
 };
@@ -227,7 +227,7 @@ protected:
     typedef Connector base_type;
     typedef shared_barrier barrier_type;
     typedef typename Locker::locker_type locker_type;
-    typedef typename Locker::lock_to_add_type lock_to_add_type;
+    typedef typename Locker::lock_to_push_type lock_to_push_type;
     typedef typename Locker::lock_to_get_type lock_to_get_type;
     typedef typename Locker::lock_to_pop_type lock_to_pop_type;
 public:
@@ -238,7 +238,7 @@ protected:
     virtual bool do_open(); ///< open the connector
     virtual void *get_memory(); ///< get the pointer to the shared memory
     virtual size_t memory_size(const size_t size) const; ///< get the size of the shared memory
-    virtual bool do_add(const tag_type tag, const void *data, const size_t size); ///< add data to the connector
+    virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the connector
     virtual const pmessage_type do_get() const; ///< get the next message from the connector
     virtual bool do_pop(); ///< remove the next message from the connector
     locker_type& locker() const; ///< get the locker
@@ -258,7 +258,7 @@ class safe_connector : public base_safe_connector<Connector, Locker>
 {
     typedef base_safe_connector<Connector, Locker> base_type;
     typedef typename base_type::locker_type locker_type;
-    typedef typename base_type::lock_to_add_type lock_to_add_type;
+    typedef typename base_type::lock_to_push_type lock_to_push_type;
     typedef typename base_type::lock_to_get_type lock_to_get_type;
     typedef typename base_type::lock_to_pop_type lock_to_pop_type;
 public:
@@ -274,12 +274,12 @@ class safe_connector<Connector, Locker, true> : public base_safe_connector<Conne
     typedef Connector connector_type;
     typedef base_safe_connector<Connector, Locker> base_type;
     typedef typename base_type::locker_type locker_type;
-    typedef typename base_type::lock_to_add_type lock_to_add_type;
+    typedef typename base_type::lock_to_push_type lock_to_push_type;
     typedef typename base_type::lock_to_get_type lock_to_get_type;
     typedef typename base_type::lock_to_pop_type lock_to_pop_type;
 public:
     explicit safe_connector(const std::string& name);
-    virtual bool do_timed_add(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< add data to the connector
+    virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the connector
     virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the connector
     virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the connector
 };
@@ -356,17 +356,17 @@ size_t simple_connector<Queue>::memory_size(const size_t size) const
 }
 
 /**
- * Add data to the connector
+ * Push data to the connector
  * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
- * @return result of the adding
+ * @return result of the pushing
  */
 //virtual
 template <typename Queue>
-bool simple_connector<Queue>::do_add(const tag_type tag, const void *data, const size_t size)
+bool simple_connector<Queue>::do_push(const tag_type tag, const void *data, const size_t size)
 {
-    return m_pqueue->add(tag, data, size);
+    return m_pqueue->push(tag, data, size);
 }
 
 /**
@@ -441,15 +441,15 @@ input_connector<Connector>::input_connector(const std::string& name) :
 }
 
 /**
- * Add data to the connector
+ * Push data to the connector
  * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
- * @return result of the adding
+ * @return result of the pushing
  */
 //virtual
 template <typename Connector>
-bool input_connector<Connector>::do_add(const tag_type tag, const void *data, const size_t size)
+bool input_connector<Connector>::do_push(const tag_type tag, const void *data, const size_t size)
 {
     return false;
 }
@@ -564,19 +564,19 @@ size_t base_safe_connector<Connector, Locker>::memory_size(const size_t size) co
 }
 
 /**
- * Add data to the connector
+ * Push data to the connector
  * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
- * @return result of the adding
+ * @return result of the pushing
  */
 //virtual
 template <typename Connector, typename Locker>
-bool base_safe_connector<Connector, Locker>::do_add(const tag_type tag, 
+bool base_safe_connector<Connector, Locker>::do_push(const tag_type tag, 
     const void *data, const size_t size)
 {
-    lock_to_add_type lock(*m_plocker);
-    if (lock.owns() && base_type::do_add(tag, data, size))
+    lock_to_push_type lock(*m_plocker);
+    if (lock.owns() && base_type::do_push(tag, data, size))
     {
         return true;
     }
@@ -651,23 +651,23 @@ safe_connector<Connector, Locker, true>::safe_connector(const std::string& name)
 }
 
 /**
- * Add data to the connector
+ * Push data to the connector
  * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
- * @param timeout the allowable timeout of the adding
- * @return result of the adding
+ * @param timeout the allowable timeout of the pushing
+ * @return result of the pushing
  */
 //virtual
 template <typename Connector, typename Locker>
-bool safe_connector<Connector, Locker, true>::do_timed_add(const tag_type tag, 
+bool safe_connector<Connector, Locker, true>::do_timed_push(const tag_type tag, 
     const void *data, const size_t size, const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     while (get_monotonic_time() < ts)
     {
-        lock_to_add_type lock(base_type::locker(), ts - get_monotonic_time());
-        if (lock.owns() && connector_type::do_add(tag, data, size))
+        lock_to_push_type lock(base_type::locker(), ts - get_monotonic_time());
+        if (lock.owns() && connector_type::do_push(tag, data, size))
         {
             base_type::barrier().open();
             return true;

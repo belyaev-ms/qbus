@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(simple_test)
     BOOST_REQUIRE(!pconnector1->pop());
     BOOST_REQUIRE(!pconnector2->get());
     buffer_t buffer = make_buffer(512);
-    BOOST_REQUIRE(pconnector1->add(0, &buffer[0], buffer.size()));
+    BOOST_REQUIRE(pconnector1->push(0, &buffer[0], buffer.size()));
     pmessage = pconnector2->get();
     BOOST_REQUIRE(pmessage);
     BOOST_REQUIRE_EQUAL(pmessage->data_size(), buffer.size());

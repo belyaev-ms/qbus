@@ -31,7 +31,7 @@ int main(int argc, char** argv)
             const std::string s = "the test message " + boost::lexical_cast<std::string>(i);
             ts = get_monotonic_time();
             std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: " << s << std::endl;
-            if (!pconnector->add(0, &s[0], s.size() + 1, timeout))
+            if (!pconnector->push(0, &s[0], s.size() + 1, timeout))
             {
                 ts = get_monotonic_time();
                 std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: break" << std::endl;

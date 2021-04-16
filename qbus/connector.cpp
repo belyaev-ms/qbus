@@ -79,31 +79,31 @@ bool base_connector::open()
 }
 
 /**
- * Add data to the connector
+ * Push data to the connector
  * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
- * @return result of the adding
+ * @return result of the pushing
  */
-bool base_connector::add(const tag_type tag, const void *data, const size_t size)
+bool base_connector::push(const tag_type tag, const void *data, const size_t size)
 {
     return (m_opened && (CON_OUT == m_type || CON_IO == m_type)) ?
-        do_add(tag, data, size) : false;
+        do_push(tag, data, size) : false;
 }
 
 /**
- * Add data to the connector
+ * Push data to the connector
  * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
- * @param timeout the allowable timeout of the adding
- * @return result of the adding
+ * @param timeout the allowable timeout of the pushing
+ * @return result of the pushing
  */
-bool base_connector::add(const tag_type tag, const void *data, const size_t size,
+bool base_connector::push(const tag_type tag, const void *data, const size_t size,
     const struct timespec& timeout)
 {
     return (m_opened && (CON_OUT == m_type || CON_IO == m_type)) ?
-        do_timed_add(tag, data, size, timeout) : false;
+        do_timed_push(tag, data, size, timeout) : false;
 }
 
 /**
@@ -149,22 +149,22 @@ bool base_connector::pop(const struct timespec& timeout)
 }
 
 /**
- * Add data to the connector
+ * Push data to the connector
  * @param tag the tag of the data
  * @param data the data
  * @param size the size of the data
- * @param timeout the allowable timeout of the adding
- * @return result of the adding
+ * @param timeout the allowable timeout of the pushing
+ * @return result of the pushing
  */
 //virtual
-bool base_connector::do_timed_add(const tag_type tag, const void *data, 
+bool base_connector::do_timed_push(const tag_type tag, const void *data, 
     const size_t size, const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     unsigned int k = 0;
     while (get_monotonic_time() < ts)
     {
-        if (do_add(tag, data, size))
+        if (do_push(tag, data, size))
         {
             return true;
         }

@@ -28,7 +28,7 @@ public:
     explicit base_queue(void *ptr);
     base_queue(const id_type qid, void *ptr, const size_t cpct);
     virtual ~base_queue();
-    bool add(const tag_type tag, const void *data, const size_t sz); ///< add new message to the queue
+    bool push(const tag_type tag, const void *data, const size_t sz); ///< push new message to the queue
     const pmessage_type get() const; ///< get the next message
     void pop(); ///< remove the next message
     id_type id() const; ///< get the identifier of the queue
@@ -65,7 +65,7 @@ protected:
     void tail(const pos_type value); /// set the tail of the queue
     void count(const size_t value); ///< set the count of messages
     void *data(const pos_type pos = 0) const; ///< get the pointer to data region of the queue
-    virtual message_desc_type add_message(const void *data, const size_t size) = 0; ///< add new message to the queue
+    virtual message_desc_type push_message(const void *data, const size_t size) = 0; ///< push new message to the queue
     virtual message_desc_type get_message() const = 0; ///< get a message from the queue
     virtual void pop_message(const message_desc_type& message_desc) = 0; ///< pop a message from the queue
     virtual pmessage_type make_message(void *ptr, const size_t cpct) const = 0; ///< make an empty message
@@ -95,7 +95,7 @@ public:
     explicit simple_queue(void *ptr);
     simple_queue(const id_type qid, void *ptr, const size_t cpct);
 protected:
-    virtual message_desc_type add_message(const void *data, const size_t size); ///< add new message to the queue
+    virtual message_desc_type push_message(const void *data, const size_t size); ///< push new message to the queue
     virtual message_desc_type get_message() const; ///< get a message from the queue
     virtual void pop_message(const message_desc_type& message_desc); ///< pop a message from the queue
     virtual pmessage_type make_message(void *ptr, const size_t cpct) const; ///< make an empty message
@@ -133,10 +133,10 @@ protected:
         COUNTER_SIZE      = sizeof(uint32_t),
         HEADER_SIZE       = COUNTER_OFFSET + COUNTER_SIZE,
     };
-    uint32_t counter() const; ///< get the counter of added messages
-    void counter(const uint32_t value); ///< set the counter of added messages
+    uint32_t counter() const; ///< get the counter of pushed messages
+    void counter(const uint32_t value); ///< set the counter of pushed messages
     virtual pos_type head() const; /// get the head of the queue
-    virtual message_desc_type add_message(const void *data, const size_t size); ///< add new message to the queue
+    virtual message_desc_type push_message(const void *data, const size_t size); ///< push new message to the queue
     virtual message_desc_type get_message() const; ///< get a message from the queue
     virtual void pop_message(const message_desc_type& message_desc); ///< pop a message from the queue
     virtual pmessage_type make_message(void *ptr, const size_t cpct) const; ///< make an empty message

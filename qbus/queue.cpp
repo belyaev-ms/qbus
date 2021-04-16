@@ -183,16 +183,16 @@ void base_queue::clean()
 }
 
 /**
- * Add data to the queue
+ * Push data to the queue
  * @param tag the tag of the message
  * @param data the data of the message
  * @param size the size of the message
  * @return the execution result
  */
-bool base_queue::add(const tag_type tag, const void *data, const size_t size)
+bool base_queue::push(const tag_type tag, const void *data, const size_t size)
 {
     clean();
-    message_desc_type message_desc = add_message(data, size);
+    message_desc_type message_desc = push_message(data, size);
     if (message_desc.first)
     {
         message_desc.first->tag(tag);
@@ -305,13 +305,13 @@ simple_queue::simple_queue(const id_type qid, void *ptr, const size_t cpct) :
 }
 
 /**
- * Add new message to the queue
+ * Push new message to the queue
  * @param data the data of the message
  * @param size the size of data
  * @return the the message
  */
 //virtual
-typename simple_queue::message_desc_type simple_queue::add_message(const void *data, const size_t size)
+typename simple_queue::message_desc_type simple_queue::push_message(const void *data, const size_t size)
 {
     return message_type::static_make_message(*this, data, size);
 }
@@ -439,8 +439,8 @@ size_t shared_queue::dec_subscriptions_count()
 }
 
 /**
- * Get the counter of added messages
- * @return the counter of added messages
+ * Get the counter of pushed messages
+ * @return the counter of pushed messages
  */
 uint32_t shared_queue::counter() const
 {
@@ -530,13 +530,13 @@ void shared_queue::clean()
 }
 
 /**
- * Add new message to the queue
+ * Push new message to the queue
  * @param data the data of the message
  * @param size the size of data
  * @return the the message
  */
 //virtual
-typename shared_queue::message_desc_type shared_queue::add_message(const void *data, const size_t size)
+typename shared_queue::message_desc_type shared_queue::push_message(const void *data, const size_t size)
 {
     message_desc_type message_desc = message_type::static_make_message(*this, data, size);
     if (message_desc.first)

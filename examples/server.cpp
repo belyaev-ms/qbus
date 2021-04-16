@@ -18,7 +18,7 @@ int main(int argc, char** argv)
             {
                 break;
             }
-            pconnector->add(0, &s[0], s.size() + 1);
+            pconnector->push(0, &s[0], s.size() + 1);
         }
     }
     return 0;
