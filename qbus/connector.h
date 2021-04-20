@@ -741,13 +741,13 @@ typedef connector::safe_connector<
     connector::io_connector<connector::single_connector_type> >     io_connector_type;
 typedef connector::safe_connector<
     connector::input_connector<connector::multi_connector_type>,
-    connector::sharable_spinlocker_with_sharable_pop_interface>     in_multiout_connector_type;
+    connector::sharable_spinlocker_with_sharable_pop_interface>     in_multi_connector_type;
 typedef connector::safe_connector<
     connector::output_connector<connector::multi_connector_type>,
-    connector::sharable_spinlocker_with_sharable_pop_interface>     out_multiout_connector_type;
+    connector::sharable_spinlocker_with_sharable_pop_interface>     out_multi_connector_type;
 typedef connector::safe_connector<
     connector::io_connector<connector::multi_connector_type>,
-    connector::sharable_spinlocker_with_sharable_pop_interface>     io_multiout_connector_type;
+    connector::sharable_spinlocker_with_sharable_pop_interface>     io_multi_connector_type;
 
 typedef connector::pconnector_type pconnector_type;
 

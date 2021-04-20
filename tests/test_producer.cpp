@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 {
     const char *name = "test";
     pconnector_type pconnector = argc < 2 ?
-        connector::make<io_multiout_connector_type>(name) :
+        connector::make<io_multi_connector_type>(name) :
         connector::make<connector::safe_connector<
             connector::io_connector<connector::multi_connector_type>,
             connector::sharable_locker_with_sharable_pop_interface> >(name);
