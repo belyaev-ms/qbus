@@ -17,18 +17,18 @@ int main(int argc, char** argv)
     
     if (pconnector->create(0, 32 * 512))
     {
-        boost::interprocess::named_mutex mutex(boost::interprocess::open_only, "test_server");
-        boost::interprocess::named_mutex mutex_client(boost::interprocess::open_only, "test_client");
+        boost::interprocess::named_mutex mutex_producer(boost::interprocess::open_only, "test_producer");
+        boost::interprocess::named_mutex mutex_consumer(boost::interprocess::open_only, "test_consumer");
         struct timespec timeout = { 0, 0 };
         timeout.tv_sec = 5;
         struct timespec ts = { 0, 0 };
         {
-            boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);
+            boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
             ts = get_monotonic_time();
             std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: create " << argc << std::endl;
         }
         {
-            boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_client);
+            boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_consumer);
         }
         for (size_t i = 0; i < 1024; ++i)
         {
@@ -39,13 +39,13 @@ int main(int argc, char** argv)
             {
                 ts = get_monotonic_time();
                 std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: break" << std::endl;
-                boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);
+                boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
                 return -1;
             }
             pconnector->pop();
         }
         {
-            boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);
+            boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
             ts = get_monotonic_time();
             std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: close" << std::endl;
         }

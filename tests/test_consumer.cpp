@@ -17,7 +17,7 @@ int main(int argc, char** argv)
    
     if (pconnector->open())
     {
-        boost::interprocess::named_mutex mutex(boost::interprocess::open_only, "test_client");
+        boost::interprocess::named_mutex mutex(boost::interprocess::open_only, "test_consumer");
         struct timespec timeout = { 0, 0 };
         timeout.tv_sec = 1;
         struct timespec ts = { 0, 0 };
