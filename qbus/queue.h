@@ -36,7 +36,7 @@ public:
     virtual size_t count() const; ///< get the count of messages
     bool empty() const; ///< check the queue is empty 
     void clear(); ///< clear the queue
-    virtual void clean(); ///< collect garbage
+    virtual size_t clean(); ///< collect garbage
     virtual size_t size() const; ///< get the size of the queue
     static size_t static_size(const size_t cpct)
     {
@@ -118,7 +118,7 @@ public:
     size_t dec_subscriptions_count(); ///< reduce the count of subscriptions
     virtual size_t count() const; ///< get the count of messages
     virtual size_t size() const; ///< get the size of the queue 
-    virtual void clean(); ///< collect garbage
+    virtual size_t clean(); ///< collect garbage
     static size_t static_size(const size_t cpct)
     {
         return HEADER_SIZE + base_queue::HEADER_SIZE + cpct;
@@ -143,6 +143,7 @@ protected:
 private:
     uint8_t *m_ptr; ///< the pointer to the raw queue
     pos_type m_head; ///< the self head of the queue
+protected:
     uint32_t m_counter; ///< the counter of popped messages
 };
 
@@ -165,6 +166,7 @@ class unreadable_shared_queue : public base_shared_queue
 public:
     explicit unreadable_shared_queue(void *ptr);
     unreadable_shared_queue(const id_type qid, void *ptr, const size_t cpct);
+    virtual size_t clean(); ///< collect garbage
 };
 
 } //namespace queue

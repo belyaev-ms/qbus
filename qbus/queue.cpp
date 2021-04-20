@@ -176,10 +176,12 @@ size_t base_queue::size() const
 
 /**
  * Collect garbage
+ * @return the number of cleaned messages
  */
 //virtual 
-void base_queue::clean()
+size_t base_queue::clean()
 {
+    return 0;
 }
 
 /**
@@ -494,9 +496,10 @@ private:
 
 /**
  * Collect garbage
+ * @return the number of cleaned messages
  */
 //virtual 
-void base_shared_queue::clean()
+size_t base_shared_queue::clean()
 {
     size_t cnt = base_queue::count();
     if (cnt > 0)
@@ -505,6 +508,7 @@ void base_shared_queue::clean()
         rollback<uint32_t> counter(m_counter);
         m_head = pos_type(-1);
         --m_counter;
+        size_t count = 0;
         while (cnt-- > 0)
         {
             message_desc_type message_desc = get_message();
@@ -514,8 +518,11 @@ void base_shared_queue::clean()
             }
             base_queue::head(message_desc.second);
             base_queue::count(cnt);
+            ++count;
         }
+        return count;
     }
+    return 0;
 }
 
 /**
@@ -635,6 +642,19 @@ unreadable_shared_queue::unreadable_shared_queue(void *ptr) :
 unreadable_shared_queue::unreadable_shared_queue(const id_type qid, void *ptr, const size_t cpct) :
     base_shared_queue(qid, ptr, cpct)
 {
+    subscriptions_count(0);
+}
+
+/**
+ * Collect garbage
+ * @return the number of cleaned messages
+ */
+//virtual 
+size_t unreadable_shared_queue::clean()
+{
+    const size_t count = base_shared_queue::clean();
+    m_counter += count;
+    return count;
 }
 
 } //namespace queue
