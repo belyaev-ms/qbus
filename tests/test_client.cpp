@@ -14,7 +14,7 @@ int main(int argc, char** argv)
         connector::make<connector::safe_connector<
             connector::input_connector<connector::multi_connector_type>,
             connector::sharable_locker_with_sharable_pop_interface> >(name);
-    
+   
     if (pconnector->open())
     {
         boost::interprocess::named_mutex mutex(boost::interprocess::open_only, "test_client");
@@ -44,7 +44,13 @@ int main(int argc, char** argv)
                 ts = get_monotonic_time();
                 std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: " << &s[0] << std::endl;
             }
-            pconnector->pop(timeout);
+            if (!pconnector->pop(timeout))
+            {
+                ts = get_monotonic_time();
+                std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: abort" << std::endl;
+                boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);
+                return -1;
+            }
         }
     }
     return 0;

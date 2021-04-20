@@ -10,14 +10,15 @@ int main(int argc, char** argv)
 {
     const char *name = "test";
     pconnector_type pconnector = argc < 2 ?
-        connector::make<out_multiout_connector_type>(name) :
+        connector::make<io_multiout_connector_type>(name) :
         connector::make<connector::safe_connector<
-            connector::output_connector<connector::multi_connector_type>,
+            connector::io_connector<connector::multi_connector_type>,
             connector::sharable_locker_with_sharable_pop_interface> >(name);
     
     if (pconnector->create(0, 32 * 512))
     {
         boost::interprocess::named_mutex mutex(boost::interprocess::open_only, "test_server");
+        boost::interprocess::named_mutex mutex_client(boost::interprocess::open_only, "test_client");
         struct timespec timeout = { 0, 0 };
         timeout.tv_sec = 5;
         struct timespec ts = { 0, 0 };
@@ -25,6 +26,9 @@ int main(int argc, char** argv)
             boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);
             ts = get_monotonic_time();
             std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: create " << argc << std::endl;
+        }
+        {
+            boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_client);
         }
         for (size_t i = 0; i < 1024; ++i)
         {

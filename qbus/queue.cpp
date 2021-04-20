@@ -211,11 +211,11 @@ bool base_queue::push(const tag_type tag, const void *data, const size_t size)
 typename base_queue::region_type base_queue::get_free_region(region_type *pprev_region) const
 {
     const size_t cpct = capacity();
-    const pos_type hd = head();
+    const pos_type hd = base_queue::head();
     if (NULL == pprev_region)
     {
         const pos_type tl = tail();
-        return (empty() || hd < tl) ?
+        return ((base_queue::count() == 0) || hd < tl) ?
             region_type(tl, cpct - tl) : 
             region_type(tl, hd - tl);
     }
