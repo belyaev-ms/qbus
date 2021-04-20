@@ -362,19 +362,18 @@ pmessage_type simple_queue::make_message(void *ptr) const
 }
 
 //==============================================================================
-//  shared_queue
+//  base_shared_queue
 //==============================================================================
 /**
  * Constructor
  * @param ptr the pointer to the header of the queue
  */
-shared_queue::shared_queue(void *ptr) :
+base_shared_queue::base_shared_queue(void *ptr) :
     base_queue(reinterpret_cast<uint8_t*>(ptr) + HEADER_SIZE),
     m_ptr(reinterpret_cast<uint8_t*>(ptr)),
     m_head(-1)
 {
     m_counter = counter();
-    inc_subscriptions_count();
 }
 
 /**
@@ -383,30 +382,20 @@ shared_queue::shared_queue(void *ptr) :
  * @param ptr the pointer to the header of the queue
  * @param cpct the capacity of the queue
  */
-shared_queue::shared_queue(const id_type qid, void *ptr, const size_t cpct) :
+base_shared_queue::base_shared_queue(const id_type qid, void *ptr, const size_t cpct) :
     base_queue(qid, reinterpret_cast<uint8_t*>(ptr) + HEADER_SIZE, cpct),
     m_ptr(reinterpret_cast<uint8_t*>(ptr)),
     m_head(-1),
     m_counter(0)
 {
     counter(0);
-    subscriptions_count(1);
-}
-
-/**
- * Destructor
- */
-//virtual
-shared_queue::~shared_queue()
-{
-    dec_subscriptions_count();
 }
 
 /**
  * Get the count of subscriptions
  * @return the count of subscriptions
  */
-size_t shared_queue::subscriptions_count() const
+size_t base_shared_queue::subscriptions_count() const
 {
     return boost::interprocess::ipcdetail::atomic_read32(reinterpret_cast<uint32_t*>(m_ptr + SUBS_COUNT_OFFSET));
 }
@@ -415,7 +404,7 @@ size_t shared_queue::subscriptions_count() const
  * Set the count of subscriptions
  * @param value the count of subscriptions
  */
-void shared_queue::subscriptions_count(const size_t value)
+void base_shared_queue::subscriptions_count(const size_t value)
 {
     boost::interprocess::ipcdetail::atomic_write32(reinterpret_cast<uint32_t*>(m_ptr + SUBS_COUNT_OFFSET), value);
 }
@@ -424,7 +413,7 @@ void shared_queue::subscriptions_count(const size_t value)
  * Increase the count of subscriptions
  * @return the count of subscriptions
  */
-size_t shared_queue::inc_subscriptions_count()
+size_t base_shared_queue::inc_subscriptions_count()
 {
     return boost::interprocess::ipcdetail::atomic_inc32(reinterpret_cast<uint32_t*>(m_ptr + SUBS_COUNT_OFFSET)) + 1;
 }
@@ -433,7 +422,7 @@ size_t shared_queue::inc_subscriptions_count()
  * Reduce the count of subscriptions
  * @return the count of subscriptions
  */
-size_t shared_queue::dec_subscriptions_count()
+size_t base_shared_queue::dec_subscriptions_count()
 {
     return boost::interprocess::ipcdetail::atomic_dec32(reinterpret_cast<uint32_t*>(m_ptr + SUBS_COUNT_OFFSET)) - 1;
 }
@@ -442,7 +431,7 @@ size_t shared_queue::dec_subscriptions_count()
  * Get the counter of pushed messages
  * @return the counter of pushed messages
  */
-uint32_t shared_queue::counter() const
+uint32_t base_shared_queue::counter() const
 {
     return *reinterpret_cast<const uint32_t*>(m_ptr + COUNTER_OFFSET);
 }
@@ -451,7 +440,7 @@ uint32_t shared_queue::counter() const
  * Set the count of subscriptions
  * @param value the count of subscriptions
  */
-void shared_queue::counter(const uint32_t value)
+void base_shared_queue::counter(const uint32_t value)
 {
     *reinterpret_cast<uint32_t*>(m_ptr + COUNTER_OFFSET) = value;
 }
@@ -461,7 +450,7 @@ void shared_queue::counter(const uint32_t value)
  * @return the size of the queue 
  */
 //virtual 
-size_t shared_queue::size() const
+size_t base_shared_queue::size() const
 {
     return static_size(capacity());
 }
@@ -471,7 +460,7 @@ size_t shared_queue::size() const
  * @return the head of the queue
  */
 //virtual
-pos_type shared_queue::head() const
+pos_type base_shared_queue::head() const
 {
     return m_head != pos_type(-1) ? m_head : base_queue::head();
 }
@@ -481,7 +470,7 @@ pos_type shared_queue::head() const
  * @return the count of messages
  */
 //virtual
-size_t shared_queue::count() const
+size_t base_shared_queue::count() const
 {
     return counter() - m_counter;
 }
@@ -507,7 +496,7 @@ private:
  * Collect garbage
  */
 //virtual 
-void shared_queue::clean()
+void base_shared_queue::clean()
 {
     size_t cnt = base_queue::count();
     if (cnt > 0)
@@ -536,7 +525,7 @@ void shared_queue::clean()
  * @return the the message
  */
 //virtual
-typename shared_queue::message_desc_type shared_queue::push_message(const void *data, const size_t size)
+typename base_shared_queue::message_desc_type base_shared_queue::push_message(const void *data, const size_t size)
 {
     message_desc_type message_desc = message_type::static_make_message(*this, data, size);
     if (message_desc.first)
@@ -551,7 +540,7 @@ typename shared_queue::message_desc_type shared_queue::push_message(const void *
  * @return the the message
  */
 //virtual
-typename shared_queue::message_desc_type shared_queue::get_message() const
+typename base_shared_queue::message_desc_type base_shared_queue::get_message() const
 {
     return message_type::static_get_message(*this);
 }
@@ -561,7 +550,7 @@ typename shared_queue::message_desc_type shared_queue::get_message() const
  * @param message_desc the description of the message
  */
 //virtual 
-void shared_queue::pop_message(const message_desc_type& message_desc)
+void base_shared_queue::pop_message(const message_desc_type& message_desc)
 {
     message_desc.first->inc_counter();
     m_head = message_desc.second % capacity();
@@ -575,7 +564,7 @@ void shared_queue::pop_message(const message_desc_type& message_desc)
  * @return the empty message
  */
 //virtual 
-pmessage_type shared_queue::make_message(void *ptr, const size_t cpct) const
+pmessage_type base_shared_queue::make_message(void *ptr, const size_t cpct) const
 {
     return boost::make_shared<message_type>(ptr, cpct);
 }
@@ -586,9 +575,66 @@ pmessage_type shared_queue::make_message(void *ptr, const size_t cpct) const
  * @return the empty message
  */
 //virtual 
-pmessage_type shared_queue::make_message(void *ptr) const
+pmessage_type base_shared_queue::make_message(void *ptr) const
 {
     return boost::make_shared<message_type>(ptr);
+}
+
+//==============================================================================
+//  shared_queue
+//==============================================================================
+/**
+ * Constructor
+ * @param ptr the pointer to the header of the queue
+ */
+shared_queue::shared_queue(void *ptr) : 
+    base_shared_queue(ptr)
+{
+    inc_subscriptions_count();
+}
+
+/**
+ * Constructor
+ * @param qid the identifier of the queue
+ * @param ptr the pointer to the header of the queue
+ * @param cpct the capacity of the queue
+ */
+shared_queue::shared_queue(const id_type qid, void *ptr, const size_t cpct) : 
+    base_shared_queue(qid, ptr, cpct)
+{
+    subscriptions_count(1);
+}
+
+/**
+ * Destructor
+ */
+//virtual
+shared_queue::~shared_queue()
+{
+    dec_subscriptions_count();
+}
+
+//==============================================================================
+//  unreadable_shared_queue
+//==============================================================================
+/**
+ * Constructor
+ * @param ptr the pointer to the header of the queue
+ */
+unreadable_shared_queue::unreadable_shared_queue(void *ptr) :
+    base_shared_queue(ptr)
+{
+}
+
+/**
+ * Constructor
+ * @param qid the identifier of the queue
+ * @param ptr the pointer to the header of the queue
+ * @param cpct the capacity of the queue
+ */
+unreadable_shared_queue::unreadable_shared_queue(const id_type qid, void *ptr, const size_t cpct) :
+    base_shared_queue(qid, ptr, cpct)
+{
 }
 
 } //namespace queue

@@ -87,7 +87,7 @@ bool base_connector::open()
  */
 bool base_connector::push(const tag_type tag, const void *data, const size_t size)
 {
-    return (m_opened && (CON_OUT == m_type || CON_IO == m_type)) ?
+    return (m_opened && (CON_OUT == m_type || CON_BIDIR == m_type)) ?
         do_push(tag, data, size) : false;
 }
 
@@ -102,7 +102,7 @@ bool base_connector::push(const tag_type tag, const void *data, const size_t siz
 bool base_connector::push(const tag_type tag, const void *data, const size_t size,
     const struct timespec& timeout)
 {
-    return (m_opened && (CON_OUT == m_type || CON_IO == m_type)) ?
+    return (m_opened && (CON_OUT == m_type || CON_BIDIR == m_type)) ?
         do_timed_push(tag, data, size, timeout) : false;
 }
 
@@ -112,7 +112,7 @@ bool base_connector::push(const tag_type tag, const void *data, const size_t siz
  */
 const pmessage_type base_connector::get() const
 {
-    return (m_opened && (CON_IN == m_type || CON_IO == m_type)) ?
+    return (m_opened && (CON_IN == m_type || CON_BIDIR == m_type)) ?
         do_get() : pmessage_type();
 }
 
@@ -123,7 +123,7 @@ const pmessage_type base_connector::get() const
  */
 const pmessage_type base_connector::get(const struct timespec& timeout) const
 {
-    return (m_opened && (CON_IN == m_type || CON_IO == m_type)) ?
+    return (m_opened && (CON_IN == m_type || CON_BIDIR == m_type)) ?
         do_timed_get(timeout) : pmessage_type();
 }
 
@@ -133,7 +133,7 @@ const pmessage_type base_connector::get(const struct timespec& timeout) const
  */
 bool base_connector::pop()
 {
-    return (m_opened && (CON_IN == m_type || CON_IO == m_type)) ?
+    return (m_opened && (CON_IN == m_type || CON_BIDIR == m_type)) ?
         do_pop() : false;
 }
 
@@ -144,7 +144,7 @@ bool base_connector::pop()
  */
 bool base_connector::pop(const struct timespec& timeout)
 {
-    return (m_opened && (CON_IN == m_type || CON_IO == m_type)) ?
+    return (m_opened && (CON_IN == m_type || CON_BIDIR == m_type)) ?
         do_timed_pop(timeout) : false;
 }
 

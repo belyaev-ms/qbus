@@ -6,7 +6,7 @@ using namespace qbus;
 int main(int argc, char** argv)
 {
     const char *name = argc > 1 ? argv[1] : "test";
-    pconnector_type pconnector = connector::make<out_multi_connector_type>(name);
+    pconnector_type pconnector = connector::make<multi_output_connector_type>(name);
     if (pconnector->create(0, 512))
     {
         struct timespec timeout = { 0, 0 };

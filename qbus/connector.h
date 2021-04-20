@@ -26,9 +26,9 @@ typedef message::tag_type tag_type;
 /** types of connectors */
 enum direction_type
 {
-    CON_IN  = 0,    ///< input
-    CON_OUT = 1,    ///< output
-    CON_IO  = 2     ///< input and output
+    CON_IN      = 0,    ///< input
+    CON_OUT     = 1,    ///< output
+    CON_BIDIR   = 2     ///< bidirectional (input and output)
 };
 
 /**
@@ -106,8 +106,9 @@ private:
     pqueue_type m_pqueue;
 };
 
-typedef simple_connector<queue::simple_queue> single_connector_type;
-typedef simple_connector<queue::shared_queue> multi_connector_type;
+typedef simple_connector<queue::simple_queue> single_bidirectional_connector_type;
+typedef simple_connector<queue::shared_queue> multi_bidirectional_connector_type;
+typedef simple_connector<queue::unreadable_shared_queue> multi_output_connector_type;
 
 /**
  * The output connector
@@ -138,10 +139,10 @@ protected:
  * The input/output connector
  */
 template <typename Connector>
-class io_connector : public Connector
+class bidirectional_connector : public Connector
 {
 public:
-    explicit io_connector(const std::string& name);
+    explicit bidirectional_connector(const std::string& name);
 };
 
 /**
@@ -455,15 +456,15 @@ bool input_connector<Connector>::do_push(const tag_type tag, const void *data, c
 }
 
 //==============================================================================
-//  io_connector
+//  bidirectional_connector
 //==============================================================================
 /**
  * Constructor
  * @param name the name of the connector
  */
 template <typename Connector>
-io_connector<Connector>::io_connector(const std::string& name) :
-    Connector(name, CON_IO)
+bidirectional_connector<Connector>::bidirectional_connector(const std::string& name) :
+    Connector(name, CON_BIDIR)
 {
 }
 
@@ -734,20 +735,23 @@ bool safe_connector<Connector, Locker, true>::
 } //namespace connector
 
 typedef connector::safe_connector<
-    connector::input_connector<connector::single_connector_type> >  in_connector_type;
+    connector::input_connector<
+        connector::single_bidirectional_connector_type> > single_input_connector_type;
 typedef connector::safe_connector<
-    connector::output_connector<connector::single_connector_type> > out_connector_type;
+    connector::output_connector<
+        connector::single_bidirectional_connector_type> > single_output_connector_type;
 typedef connector::safe_connector<
-    connector::io_connector<connector::single_connector_type> >     io_connector_type;
+    connector::bidirectional_connector<
+        connector::single_bidirectional_connector_type> > single_bidirectional_connector_type;
 typedef connector::safe_connector<
-    connector::input_connector<connector::multi_connector_type>,
-    connector::sharable_spinlocker_with_sharable_pop_interface>     in_multi_connector_type;
+    connector::input_connector<connector::multi_bidirectional_connector_type>,
+    connector::sharable_spinlocker_with_sharable_pop_interface> multi_input_connector_type;
 typedef connector::safe_connector<
-    connector::output_connector<connector::multi_connector_type>,
-    connector::sharable_spinlocker_with_sharable_pop_interface>     out_multi_connector_type;
+    connector::output_connector<connector::multi_output_connector_type>,
+    connector::sharable_spinlocker_with_sharable_pop_interface> multi_output_connector_type;
 typedef connector::safe_connector<
-    connector::io_connector<connector::multi_connector_type>,
-    connector::sharable_spinlocker_with_sharable_pop_interface>     io_multi_connector_type;
+    connector::bidirectional_connector<connector::multi_bidirectional_connector_type>,
+    connector::sharable_spinlocker_with_sharable_pop_interface> multi_bidirectional_connector_type;
 
 typedef connector::pconnector_type pconnector_type;
 

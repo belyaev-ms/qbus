@@ -22,8 +22,8 @@ using namespace qbus;
 BOOST_AUTO_TEST_CASE(simple_test)
 {
     pmessage_type pmessage;
-    pconnector_type pconnector1 = connector::make<out_connector_type>("test");
-    pconnector_type pconnector2 = connector::make<in_connector_type>("test");
+    pconnector_type pconnector1 = connector::make<single_output_connector_type>("test");
+    pconnector_type pconnector2 = connector::make<single_input_connector_type>("test");
     BOOST_REQUIRE(pconnector1);
     BOOST_REQUIRE(pconnector2);
     BOOST_REQUIRE(pconnector1->create(0, 32 * 512));

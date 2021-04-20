@@ -7,7 +7,7 @@ using namespace qbus;
 int main(int argc, char** argv)
 {
     const char *name = argc > 1 ? argv[1] : "test";
-    pconnector_type pconnector = connector::make<in_connector_type>(name);
+    pconnector_type pconnector = connector::make<single_input_connector_type>(name);
     if (pconnector->open())
     {
         while (true)

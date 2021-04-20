@@ -103,16 +103,15 @@ protected:
 };
 
 /**
- * The shared queue that has a lot of readers
+ * The base shared queue that has a lot of readers
  */
-class shared_queue : public base_queue
+class base_shared_queue : public base_queue
 {
-    friend class message::message<shared_queue>;
+    friend class message::message<base_shared_queue>;
 public:
-    typedef message::message<shared_queue> message_type;
-    explicit shared_queue(void *ptr);
-    shared_queue(const id_type qid, void *ptr, const size_t cpct);
-    virtual ~shared_queue();
+    typedef message::message<base_shared_queue> message_type;
+    explicit base_shared_queue(void *ptr);
+    base_shared_queue(const id_type qid, void *ptr, const size_t cpct);
     size_t subscriptions_count() const; ///< get the count of subscriptions
     void subscriptions_count(const size_t value); ///< set the count of subscriptions
     size_t inc_subscriptions_count(); ///< increase the count of subscriptions
@@ -145,6 +144,27 @@ private:
     uint8_t *m_ptr; ///< the pointer to the raw queue
     pos_type m_head; ///< the self head of the queue
     uint32_t m_counter; ///< the counter of popped messages
+};
+
+/**
+ * The shared queue that has a lot of readers and writers
+ */
+class shared_queue : public base_shared_queue
+{
+public:
+    explicit shared_queue(void *ptr);
+    shared_queue(const id_type qid, void *ptr, const size_t cpct);
+    virtual ~shared_queue();
+};
+
+/**
+ * The shared queue that is used only for write operation
+ */
+class unreadable_shared_queue : public base_shared_queue
+{
+public:
+    explicit unreadable_shared_queue(void *ptr);
+    unreadable_shared_queue(const id_type qid, void *ptr, const size_t cpct);
 };
 
 } //namespace queue

@@ -10,9 +10,9 @@ int main(int argc, char** argv)
 {
     const char *name = "test";
     pconnector_type pconnector = argc < 2 ?
-        connector::make<in_multi_connector_type>(name) :
+        connector::make<multi_input_connector_type>(name) :
         connector::make<connector::safe_connector<
-            connector::input_connector<connector::multi_connector_type>,
+            connector::input_connector<connector::multi_bidirectional_connector_type>,
             connector::sharable_locker_with_sharable_pop_interface> >(name);
    
     if (pconnector->open())
