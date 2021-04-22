@@ -1,6 +1,7 @@
 #include "qbus/connector.h"
 #include <vector>
 #include <iostream>
+#include <boost/lexical_cast.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 
@@ -9,11 +10,22 @@ using namespace qbus;
 int main(int argc, char** argv)
 {
     const char *name = "test";
-    pconnector_type pconnector = argc < 2 ?
-        connector::make<multi_input_connector_type>(name) :
-        connector::make<connector::safe_connector<
-            connector::input_connector<connector::multi_bidirectional_connector_type>,
-            connector::sharable_locker_with_sharable_pop_interface> >(name);
+    pconnector_type pconnector;
+    const size_t option = boost::lexical_cast<size_t>(argv[1]);
+    switch (option)
+    {
+        case 1:
+        case 3:
+            pconnector = connector::make<multi_input_connector_type>(name);
+            break;
+        case 2:
+        case 4:
+            pconnector = connector::make<connector::safe_connector<
+                connector::input_connector<connector::multi_bidirectional_connector_type>,
+                connector::sharable_locker_with_sharable_pop_interface> >(name);
+            break;
+    }
+    assert(pconnector);
    
     if (pconnector->open())
     {

@@ -9,11 +9,28 @@ using namespace qbus;
 int main(int argc, char** argv)
 {
     const char *name = "test";
-    pconnector_type pconnector = argc < 2 ?
-        connector::make<multi_bidirectional_connector_type>(name) :
-        connector::make<connector::safe_connector<
-            connector::bidirectional_connector<connector::multi_bidirectional_connector_type>,
-            connector::sharable_locker_with_sharable_pop_interface> >(name);
+    pconnector_type pconnector;
+    const size_t option = boost::lexical_cast<size_t>(argv[1]);
+    switch (option)
+    {
+        case 1:
+            pconnector = connector::make<multi_bidirectional_connector_type>(name);
+            break;
+        case 2:
+            pconnector = connector::make<connector::safe_connector<
+                connector::bidirectional_connector<connector::multi_bidirectional_connector_type>,
+                connector::sharable_locker_with_sharable_pop_interface> >(name);
+            break;
+        case 3:
+            pconnector = connector::make<multi_output_connector_type>(name);
+            break;
+        case 4:
+            pconnector = connector::make<connector::safe_connector<
+                connector::bidirectional_connector<connector::multi_output_connector_type>,
+                connector::sharable_locker_with_sharable_pop_interface> >(name);
+            break;
+    }
+    assert(pconnector);
     
     if (pconnector->create(0, 32 * 512))
     {
@@ -42,7 +59,10 @@ int main(int argc, char** argv)
                 boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
                 return -1;
             }
-            pconnector->pop();
+            if (option < 3)
+            {
+                pconnector->pop();
+            }
         }
         {
             boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
