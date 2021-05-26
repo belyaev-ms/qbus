@@ -32,14 +32,6 @@ base_message::base_message(void *ptr, const size_t cpct) :
 }
 
 /**
- * Destructor
- */
-//virtual
-base_message::~base_message()
-{
-}
-
-/**
  * Get the tag of the message
  * @return the tag of the message
  */

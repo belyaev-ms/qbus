@@ -112,10 +112,6 @@ public:
     typedef message::message<base_shared_queue> message_type;
     explicit base_shared_queue(void *ptr);
     base_shared_queue(const id_type qid, void *ptr, const size_t cpct);
-    size_t subscriptions_count() const; ///< get the count of subscriptions
-    void subscriptions_count(const size_t value); ///< set the count of subscriptions
-    size_t inc_subscriptions_count(); ///< increase the count of subscriptions
-    size_t dec_subscriptions_count(); ///< reduce the count of subscriptions
     virtual size_t count() const; ///< get the count of messages
     virtual size_t size() const; ///< get the size of the queue 
     virtual size_t clean(); ///< collect garbage
@@ -132,6 +128,10 @@ protected:
         COUNTER_SIZE      = sizeof(uint32_t),
         HEADER_SIZE       = COUNTER_OFFSET + COUNTER_SIZE,
     };
+    size_t subscriptions_count() const; ///< get the count of subscriptions
+    void subscriptions_count(const size_t value); ///< set the count of subscriptions
+    size_t inc_subscriptions_count(); ///< increase the count of subscriptions
+    size_t dec_subscriptions_count(); ///< reduce the count of subscriptions
     uint32_t counter() const; ///< get the counter of pushed messages
     void counter(const uint32_t value); ///< set the counter of pushed messages
     virtual pos_type head() const; /// get the head of the queue

@@ -28,7 +28,6 @@ class base_message
 public:
     typedef boost::shared_ptr<base_message> pmessage_type;
     
-    virtual ~base_message();
     flags_type flags() const; ///< get the flags of the message
     tag_type tag() const; ///< get the tag of the message
     void tag(const tag_type value); ///< set the tag of the message
@@ -50,7 +49,7 @@ public:
         return size > HEADER_SIZE ? size - HEADER_SIZE : 0;
     }
 protected:
-    base_message(void *ptr);
+    explicit base_message(void *ptr);
     base_message(void *ptr, const size_t cpct);
 private:
     enum
@@ -90,7 +89,7 @@ class message : public base_message
 public:
     friend Queue;
     typedef Queue queue_type;
-    message(void *ptr);
+    explicit message(void *ptr);
     message(void *ptr, const size_t cpct);
 private:
     typedef typename queue_type::region_type region_type;
