@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <boost/lexical_cast.hpp>
 #define SDEBUG(msg) //do { std::cout << msg; } while (0);
 
 using namespace qbus;
@@ -24,7 +25,8 @@ size_t time_us()
 
 const std::vector<char> MESSAGE { 'P', 'I', 'N', 'G', '\0' };
 
-bool qbus_client(const std::string& name)
+bool qbus_client(const std::string& name, const size_t count, 
+    const size_t part)
 {
     SDEBUG("qbus::client ");
     const struct timespec ts = { 10, 0 };
@@ -36,28 +38,34 @@ bool qbus_client(const std::string& name)
     {
         SDEBUG("open" << std::endl);
         size_t t = time_us();
-        for (int i = 0; i < 1024; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
-            pconnector_out->push(0, &MESSAGE[0], MESSAGE.size(), ts);
-            SDEBUG(":> " << i << "\t" << &MESSAGE[0] << std::endl);
-            pmessage_type pmessage = pconnector_in->get(ts);
-            if (!pmessage)
+            for (size_t j = 0; j < part; ++j)
             {
-                return false;
+                pconnector_out->push(0, &MESSAGE[0], MESSAGE.size(), ts);
+                SDEBUG(":> " << i << ":" << j << "\t" << &MESSAGE[0] << std::endl);
             }
-            const size_t size = pmessage->data_size();
-            if (0 == size)
+            for (size_t j = 0; j < part; ++j)
             {
-                return false;
+                pmessage_type pmessage = pconnector_in->get(ts);
+                if (!pmessage)
+                {
+                    return false;
+                }
+                const size_t size = pmessage->data_size();
+                if (0 == size)
+                {
+                    return false;
+                }
+                if (0 == t)
+                {
+                    t = time_us();
+                }
+                std::vector<char> buffer(size);
+                pmessage->unpack(&buffer[0]);
+                pconnector_in->pop(ts);
+                SDEBUG(":< " << i << ":" << j << "\t" << &buffer[0] << std::endl);
             }
-            if (0 == t)
-            {
-                t = time_us();
-            }
-            std::vector<char> buffer(size);
-            pmessage->unpack(&buffer[0]);
-            pconnector_in->pop(ts);
-            SDEBUG(":< " << i << "\t" << &buffer[0] << std::endl);
         }
         size_t dt = time_us() - t;
         std::cout << "dt = " << dt << std::endl;
@@ -67,7 +75,8 @@ bool qbus_client(const std::string& name)
     return false;
 }
 
-bool qbus_server(const std::string& name)
+bool qbus_server(const std::string& name, const size_t count, 
+    const size_t part)
 {
     SDEBUG("qbus::server ");
     const struct timespec ts = { 10, 0 };
@@ -79,28 +88,35 @@ bool qbus_server(const std::string& name)
     {
         SDEBUG("open" << std::endl);
         size_t t = 0;
-        for (int i = 0; i < 1024; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
-            pmessage_type pmessage = pconnector_in->get(ts);
-            if (!pmessage)
+            std::vector<char> buffer;
+            for (size_t j = 0; j < part; ++j)
             {
-                return false;
+                pmessage_type pmessage = pconnector_in->get(ts);
+                if (!pmessage)
+                {
+                    return false;
+                }
+                const size_t size = pmessage->data_size();
+                buffer.resize(size);
+                if (0 == size)
+                {
+                    return false;
+                }
+                if (0 == t)
+                {
+                    t = time_us();
+                }
+                pmessage->unpack(&buffer[0]);
+                pconnector_in->pop(ts);
+                SDEBUG(":< " << i << ":" << j << "\t" << &buffer[0] << std::endl);
             }
-            const size_t size = pmessage->data_size();
-            if (0 == size)
+            for (size_t j = 0; j < part; ++j)
             {
-                return false;
+                pconnector_out->push(0, &buffer[0], MESSAGE.size(), ts);
+                SDEBUG(":> " << i << ":" << j << "\t" << &buffer[0] << std::endl);
             }
-            if (0 == t)
-            {
-                t = time_us();
-            }
-            std::vector<char> buffer(size);
-            pmessage->unpack(&buffer[0]);
-            pconnector_in->pop(ts);
-            SDEBUG(":< " << i << "\t" << &buffer[0] << std::endl);
-            pconnector_out->push(0, &buffer[0], MESSAGE.size(), ts);
-            SDEBUG(":> " << i << "\t" << &buffer[0] << std::endl);
         }
         size_t dt = time_us() - t;
         std::cout << "dt = " << dt << std::endl;
@@ -110,7 +126,8 @@ bool qbus_server(const std::string& name)
     return false;
 }
 
-bool unix_socket_client(const std::string& name)
+bool unix_socket_client(const std::string& name, const size_t count, 
+    const size_t part)
 {
     SDEBUG("unix::client ");
     struct sockaddr_un unix_addr;
@@ -124,21 +141,27 @@ bool unix_socket_client(const std::string& name)
     {
         SDEBUG("open" << std::endl);
         size_t t = time_us();
-        for (int i = 0; i < 1024; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
-            if (send(sd, &MESSAGE[0], MESSAGE.size(), 0) == -1)
+            for (size_t j = 0; j < part; ++j)
             {
-                close(sd);
-                return false;
+                if (send(sd, &MESSAGE[0], MESSAGE.size(), 0) == -1)
+                {
+                    close(sd);
+                    return false;
+                }
+                SDEBUG(":> " << i << ":" << j << "\t" << &MESSAGE[0] << std::endl);
             }
-            SDEBUG(":> " << i << "\t" << &MESSAGE[0] << std::endl);
-            std::vector<char> buffer(MESSAGE.size());
-            if (recv(sd, &buffer[0], buffer.size(), 0) == -1)
+            for (size_t j = 0; j < part; ++j)
             {
-                close(sd);
-                return false;
+                std::vector<char> buffer(MESSAGE.size());
+                if (recv(sd, &buffer[0], buffer.size(), 0) == -1)
+                {
+                    close(sd);
+                    return false;
+                }
+                SDEBUG(":< " << i << ":" << j << "\t" << &buffer[0] << std::endl);
             }
-            SDEBUG(":< " << i << "\t" << &buffer[0] << std::endl);
         }
         size_t dt = time_us() - t;
         std::cout << "dt = " << dt << std::endl;
@@ -149,7 +172,8 @@ bool unix_socket_client(const std::string& name)
     return false;
 }
 
-bool unix_socket_server(const std::string& name)
+bool unix_socket_server(const std::string& name, const size_t count, 
+    const size_t part)
 {
     SDEBUG("unix::server ");
     struct sockaddr_un unix_addr;
@@ -167,23 +191,29 @@ bool unix_socket_server(const std::string& name)
         {
             SDEBUG("open" << std::endl);
             size_t t = time_us();
-            for (int i = 0; i < 1024; ++i)
+            for (size_t i = 0; i < count; ++i)
             {
                 std::vector<char> buffer(MESSAGE.size());
-                if (recv(csd, &buffer[0], buffer.size(), 0) == -1)
+                for (size_t j = 0; j < part; ++j)
                 {
-                    close(csd);
-                    close(sd);
-                    return false;
+                    if (recv(csd, &buffer[0], buffer.size(), 0) == -1)
+                    {
+                        close(csd);
+                        close(sd);
+                        return false;
+                    }
+                    SDEBUG(":< " << i << ":" << j << "\t" << &buffer[0] << std::endl);
                 }
-                SDEBUG(":< " << i << "\t" << &buffer[0] << std::endl);
-                if (send(csd, &buffer[0], buffer.size(), 0) == -1)
+                for (size_t j = 0; j < part; ++j)
                 {
-                    close(csd);
-                    close(sd);
-                    return false;
+                    if (send(csd, &buffer[0], buffer.size(), 0) == -1)
+                    {
+                        close(csd);
+                        close(sd);
+                        return false;
+                    }
+                    SDEBUG(":> " << i << ":" << j << "\t" << &buffer[0] << std::endl);
                 }
-                SDEBUG(":> " << i << "\t" << &buffer[0] << std::endl);
             }
             size_t dt = time_us() - t;
             std::cout << "dt = " << dt << std::endl;
@@ -213,9 +243,11 @@ int main(int argc, char** argv)
     };
     service_type service = SERVICE_SERVER;
     transport_type transport = TRANSPORT_QBUS;
+    size_t count = 1024;
+    size_t part = 1;
     if (argc > 1)
     {
-        const char *options = "cun:";
+        const char *options = "cun:i:p:";
         int opt;
         while ((opt = getopt(argc, argv, options)) != -1)
         {
@@ -230,17 +262,24 @@ int main(int argc, char** argv)
                 case 'n':
                     name = optarg;
                     break;
+                case 'i':
+                    count = boost::lexical_cast<size_t>(optarg);
+                    break;
+                case 'p':
+                    part = boost::lexical_cast<size_t>(optarg);
+                    break;
             }
         }
     }
     
-    std::function<bool(const std::string)> handlers[TRANSPORT_COUNT][SERVICE_COUNT] =
+    std::function<bool(const std::string&, const size_t, const size_t)> 
+        handlers[TRANSPORT_COUNT][SERVICE_COUNT] =
     {
         { qbus_server, qbus_client },
         { unix_socket_server, unix_socket_client }
     };
     
-    handlers[transport][service](name);
+    handlers[transport][service](name, count, part);
     
     return 0;
 }
