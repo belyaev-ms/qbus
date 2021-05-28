@@ -80,6 +80,8 @@ protected:
     virtual bool do_open(); ///< open the connector
     virtual void *get_memory(); ///< get the pointer to the shared memory
     virtual size_t memory_size(const size_t size) const = 0; ///< get the size of the shared memory
+    bool create_memory(const size_t size); ///< create the shared memory
+    bool open_memory(); ///< open the shared memory
 private:
     shared_memory_type m_memory;
 };
@@ -102,6 +104,9 @@ protected:
     virtual bool do_push(const tag_type tag, const void *data, const size_t sz); ///< push data to the connector
     virtual const pmessage_type do_get() const; ///< get the next message from the connector
     virtual bool do_pop(); ///< remove the next message from the connector
+    void create_queue(const id_type cid, const size_t size); ///< create the queue
+    void open_queue(); ///< open the queue
+    void free_queue(); ///< free the queue
 private:
     pqueue_type m_pqueue;
 };
@@ -161,18 +166,20 @@ class sharable_locker_interface : public base_locker_interface<false>
 {
 public:
     typedef boost::interprocess::interprocess_upgradable_mutex locker_type;
+    typedef boost::interprocess::scoped_lock<locker_type> scoped_lock_type;
+    typedef boost::interprocess::sharable_lock<locker_type> sharable_lock_type;
 protected:
     typedef boost::interprocess::try_to_lock_type try_to_lock_type;
-    struct scoped_try_lock : public boost::interprocess::scoped_lock<locker_type>
+    struct scoped_try_lock : public scoped_lock_type
     {
         explicit scoped_try_lock(locker_type& locker) :
-            boost::interprocess::scoped_lock<locker_type>(locker, try_to_lock_type())
+            scoped_lock_type(locker, try_to_lock_type())
         {}
     };
-    struct sharable_try_lock : public boost::interprocess::sharable_lock<locker_type>
+    struct sharable_try_lock : public sharable_lock_type
     {
         explicit sharable_try_lock(locker_type& locker) :
-            boost::interprocess::sharable_lock<locker_type>(locker, try_to_lock_type())
+            sharable_lock_type(locker, try_to_lock_type())
         {}
     };
 public:
@@ -199,7 +206,8 @@ class sharable_spinlocker_interface : public base_locker_interface<true>
 {
 public:
     typedef shared_locker locker_type;
-public:
+    typedef scoped_lock<locker_type> scoped_lock_type;
+    typedef sharable_lock<locker_type> sharable_lock_type;
     typedef scoped_try_lock<locker_type> lock_to_push_type;
     typedef scoped_try_lock<locker_type> lock_to_pop_type;
     typedef sharable_try_lock<locker_type> lock_to_get_type;
@@ -212,7 +220,8 @@ class sharable_spinlocker_with_sharable_pop_interface : public base_locker_inter
 {
 public:
     typedef shared_locker locker_type;
-public:
+    typedef scoped_lock<locker_type> scoped_lock_type;
+    typedef sharable_lock<locker_type> sharable_lock_type;
     typedef scoped_try_lock<locker_type> lock_to_push_type;
     typedef sharable_try_lock<locker_type> lock_to_pop_type;
     typedef sharable_try_lock<locker_type> lock_to_get_type;
@@ -228,6 +237,8 @@ protected:
     typedef Connector base_type;
     typedef shared_barrier barrier_type;
     typedef typename Locker::locker_type locker_type;
+    typedef typename Locker::scoped_lock_type scoped_lock_type;
+    typedef typename Locker::sharable_lock_type sharable_lock_type;
     typedef typename Locker::lock_to_push_type lock_to_push_type;
     typedef typename Locker::lock_to_get_type lock_to_get_type;
     typedef typename Locker::lock_to_pop_type lock_to_pop_type;
@@ -259,6 +270,8 @@ class safe_connector : public base_safe_connector<Connector, Locker>
 {
     typedef base_safe_connector<Connector, Locker> base_type;
     typedef typename base_type::locker_type locker_type;
+    typedef typename base_type::scoped_lock_type scoped_lock_type;
+    typedef typename base_type::sharable_lock_type sharable_lock_type;
     typedef typename base_type::lock_to_push_type lock_to_push_type;
     typedef typename base_type::lock_to_get_type lock_to_get_type;
     typedef typename base_type::lock_to_pop_type lock_to_pop_type;
@@ -275,6 +288,8 @@ class safe_connector<Connector, Locker, true> : public base_safe_connector<Conne
     typedef Connector connector_type;
     typedef base_safe_connector<Connector, Locker> base_type;
     typedef typename base_type::locker_type locker_type;
+    typedef typename base_type::scoped_lock_type scoped_lock_type;
+    typedef typename base_type::sharable_lock_type sharable_lock_type;
     typedef typename base_type::lock_to_push_type lock_to_push_type;
     typedef typename base_type::lock_to_get_type lock_to_get_type;
     typedef typename base_type::lock_to_pop_type lock_to_pop_type;
@@ -322,7 +337,7 @@ bool simple_connector<Queue>::do_create(const id_type cid, const size_t size)
 {
     if (base_type::do_create(cid, size))
     {
-        m_pqueue = boost::make_shared<queue_type>(cid, get_memory(), size);
+        create_queue(cid, size);
         return true;
     }
     return false;
@@ -338,10 +353,39 @@ bool simple_connector<Queue>::do_open()
 {
     if (base_type::do_open())
     {
-        m_pqueue = boost::make_shared<queue_type>(get_memory());
+        open_queue();
         return true;
     }
     return false;
+}
+
+/**
+ * Create the queue
+ * @param cid the identifier of the queue
+ * @param size the size of a queue
+ */
+template <typename Queue>
+void simple_connector<Queue>::create_queue(const id_type cid, const size_t size)
+{
+    m_pqueue = boost::make_shared<queue_type>(cid, get_memory(), size);
+}
+
+/**
+ * Open the queue
+ */
+template <typename Queue>
+void simple_connector<Queue>::open_queue()
+{
+    m_pqueue = boost::make_shared<queue_type>(get_memory());
+}
+
+/**
+ * Free the queue
+ */
+template <typename Queue>
+void simple_connector<Queue>::free_queue()
+{
+    m_pqueue.reset();
 }
 
 /**
@@ -491,6 +535,10 @@ base_safe_connector<Connector, Locker>::base_safe_connector(const std::string& n
 template <typename Connector, typename Locker>
 base_safe_connector<Connector, Locker>::~base_safe_connector()
 {
+    {
+        scoped_lock_type lock(*m_plocker);
+        base_type::free_queue();
+    }
     if (m_owner)
     {
         m_plocker->~locker_type();
@@ -508,13 +556,15 @@ template <typename Connector, typename Locker>
 bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
     const size_t size)
 {
-    if (base_type::do_create(cid, size))
+    if (base_type::create_memory(size))
     {
         uint8_t *ptr = reinterpret_cast<uint8_t*>(base_type::get_memory());
         m_plocker = new (ptr) locker_type();
         ptr += sizeof(locker_type);
         m_pbarrier = new (ptr) barrier_type();
         m_owner = true;
+        scoped_lock_type lock(*m_plocker);
+        base_type::create_queue(cid, size);
         return true;
     }
     return false;
@@ -528,12 +578,14 @@ bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
 template <typename Connector, typename Locker>
 bool base_safe_connector<Connector, Locker>::do_open()
 {
-    if (base_type::do_open())
+    if (base_type::open_memory())
     {
         uint8_t *ptr = reinterpret_cast<uint8_t*>(base_type::get_memory());
         m_plocker = reinterpret_cast<locker_type*>(ptr);
         ptr += sizeof(locker_type);
         m_pbarrier = reinterpret_cast<barrier_type*>(ptr);
+        scoped_lock_type lock(*m_plocker);
+        base_type::open_queue();
         return true;
     }
     return false;

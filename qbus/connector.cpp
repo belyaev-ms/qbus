@@ -240,7 +240,7 @@ shared_connector::shared_connector(const std::string& name, const direction_type
 //virtual
 bool shared_connector::do_create(const id_type cid, const size_t size)
 {
-    return m_memory.create(memory_size(size));
+    return create_memory(size);
 }
 
 /**
@@ -249,6 +249,26 @@ bool shared_connector::do_create(const id_type cid, const size_t size)
  */
 //virtual
 bool shared_connector::do_open()
+{
+    return open_memory();
+}
+
+/**
+ * Create the shared memory
+ * @param cid the identifier of the connector
+ * @param size the size of a queue
+ * @return the result of the creating
+ */
+bool shared_connector::create_memory(const size_t size)
+{
+    return m_memory.create(memory_size(size));
+}
+
+/**
+ * Open the shared memory
+ * @return the result of the opening
+ */
+bool shared_connector::open_memory()
 {
     return m_memory.open();
 }
