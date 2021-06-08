@@ -6,6 +6,27 @@ namespace qbus
 {
 namespace message
 {
+
+/**
+ * Get the source identifier
+ * @return the source identifier
+ */
+sid_type get_sid()
+{
+    static sid_type sid = getpid();
+    return sid;
+}
+
+/**
+ * Get the current timestamp
+ * @return the current timestamp
+ */
+size_t get_timestamp()
+{
+    struct timespec ts = { 0 };
+    while (clock_gettime(CLOCK_MONOTONIC, &ts) != 0);
+    return ts.tv_sec;
+}
     
 //==============================================================================
 //  base_message
@@ -29,6 +50,44 @@ base_message::base_message(void *ptr, const size_t cpct) :
 {
     memset(ptr, 0, HEADER_SIZE);
     capacity(cpct);
+    sid(get_sid());
+    timestamp(get_timestamp());
+}
+
+/**
+ * Get the source identifier of the message
+ * @return the source identifier of the message
+ */
+sid_type base_message::sid() const
+{
+    return *reinterpret_cast<const sid_type*>(m_ptr + SID_OFFSET);
+}
+
+/**
+ * Set the source identifier of the message
+ * @param value the source identifier of the message
+ */
+void base_message::sid(const sid_type value)
+{
+    *reinterpret_cast<sid_type*>(m_ptr + SID_OFFSET) = value;
+}
+
+/**
+ * Get the source identifier of the message
+ * @return the timestamp of the message
+ */
+size_t base_message::timestamp() const
+{
+    return *reinterpret_cast<const uint32_t*>(m_ptr + TS_OFFSET);
+}
+
+/**
+ * Set the timestamp of the message
+ * @param value the timestamp of the message
+ */
+void base_message::timestamp(const size_t value)
+{
+    *reinterpret_cast<uint32_t*>(m_ptr + TS_OFFSET) = value;
 }
 
 /**
@@ -60,11 +119,11 @@ flags_type base_message::flags() const
 
 /**
  * Set the flags of the message
- * @param flags the flags of the message
+ * @param value the flags of the message
  */
-void base_message::flags(const flags_type flags)
+void base_message::flags(const flags_type value)
 {
-    *reinterpret_cast<flags_type*>(m_ptr + FLAGS_OFFSET) = flags;
+    *reinterpret_cast<flags_type*>(m_ptr + FLAGS_OFFSET) = value;
 }
 
 /**

@@ -10,7 +10,7 @@ namespace qbus
     
 namespace message
 {
-
+    
 enum
 {
     FLG_HEAD = 1,
@@ -19,6 +19,10 @@ enum
 
 typedef uint32_t tag_type;
 typedef uint32_t flags_type;
+typedef pid_t sid_type;
+
+sid_type get_sid(); ///< get the source identifier
+size_t get_timestamp(); ///< get the current timestamp
 
 /**
  * The message
@@ -28,6 +32,8 @@ class base_message
 public:
     typedef boost::shared_ptr<base_message> pmessage_type;
     
+    sid_type sid() const; //< get the surce identifier of the message
+    size_t timestamp() const; ///< get the timestamp of the message
     flags_type flags() const; ///< get the flags of the message
     tag_type tag() const; ///< get the tag of the message
     void tag(const tag_type value); ///< set the tag of the message
@@ -51,6 +57,8 @@ public:
 protected:
     explicit base_message(void *ptr);
     base_message(void *ptr, const size_t cpct);
+    void *data(); ///< get the pointer to data of the message
+    const void *data() const; ///< get the pointer to data of the message
 private:
     enum
     {
@@ -58,20 +66,24 @@ private:
         FLAGS_SIZE      = sizeof(flags_type),
         CAPACITY_OFFSET = FLAGS_OFFSET + FLAGS_SIZE,
         CAPACITY_SIZE   = sizeof(uint32_t),
-        TAG_OFFSET      = CAPACITY_OFFSET + CAPACITY_SIZE,
+        SID_OFFSET      = CAPACITY_OFFSET + CAPACITY_SIZE,
+        SID_SIZE        = sizeof(sid_type),
+        TAG_OFFSET      = SID_OFFSET + SID_SIZE,
         TAG_SIZE        = sizeof(tag_type),
         COUNTER_OFFSET  = TAG_OFFSET + TAG_SIZE,
         COUNTER_SIZE    = sizeof(uint32_t),
-        DATA_OFFSET     = COUNTER_OFFSET + COUNTER_SIZE,
+        TS_OFFSET       = COUNTER_OFFSET + COUNTER_SIZE,
+        TS_SIZE         = sizeof(uint32_t),
+        DATA_OFFSET     = TS_OFFSET + TS_SIZE,
         HEADER_SIZE     = DATA_OFFSET
     };
 
-    void flags(const flags_type flags); ///< set the flags of the message
+    void sid(const sid_type value); //< set the surce identifier of the message
+    void timestamp(const size_t value); ///< set the timestamp of the message
+    void flags(const flags_type value); ///< set the flags of the message
     size_t capacity() const; ///< get the capacity of the message
     size_t total_capacity() const; ///< get total capacity of all chained messages
     void capacity(const size_t value); ///< set the capacity of the message
-    void *data(); ///< get the pointer to data of the message
-    const void *data() const; ///< get the pointer to data of the message
 private:
     uint8_t *m_ptr; ///< the pointer to the raw message
     pmessage_type m_pmessage; ///< the next message
