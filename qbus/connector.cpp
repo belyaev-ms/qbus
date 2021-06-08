@@ -149,6 +149,15 @@ bool base_connector::pop(const struct timespec& timeout)
 }
 
 /**
+ * Check if the connected is enabled
+ * @return result of the checking
+ */
+bool base_connector::enabled() const
+{
+    return m_opened;
+}
+
+/**
  * Push data to the connector
  * @param tag the tag of the data
  * @param data the data

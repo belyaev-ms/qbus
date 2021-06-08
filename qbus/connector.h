@@ -535,13 +535,16 @@ base_safe_connector<Connector, Locker>::base_safe_connector(const std::string& n
 template <typename Connector, typename Locker>
 base_safe_connector<Connector, Locker>::~base_safe_connector()
 {
+    if (base_type::enabled())
     {
-        scoped_lock_type lock(*m_plocker);
-        base_type::free_queue();
-    }
-    if (m_owner)
-    {
-        m_plocker->~locker_type();
+        {
+            scoped_lock_type lock(*m_plocker);
+            base_type::free_queue();
+        }
+        if (m_owner)
+        {
+            m_plocker->~locker_type();
+        }
     }
 }
 
