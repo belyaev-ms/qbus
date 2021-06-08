@@ -264,7 +264,6 @@ const pmessage_type base_queue::get() const
     if (count() > 0)
     {
         pmessage_type pmessage = get_message().first;
-        assert(pmessage);
         return pmessage;
     }
     return pmessage_type();
@@ -397,6 +396,7 @@ base_shared_queue::base_shared_queue(const id_type qid, void *ptr, const size_t 
  * Get the count of subscriptions
  * @return the count of subscriptions
  */
+//virtual
 size_t base_shared_queue::subscriptions_count() const
 {
     return boost::interprocess::ipcdetail::atomic_read32(reinterpret_cast<uint32_t*>(m_ptr + SUBS_COUNT_OFFSET));
@@ -511,7 +511,7 @@ size_t base_shared_queue::clean()
         size_t count = 0;
         while (cnt-- > 0)
         {
-            message_desc_type message_desc = get_message();
+            message_desc_type message_desc = base_shared_queue::get_message();
             if (!message_desc.first || message_desc.first->counter() < subscriptions_count())
             {
                 break;
@@ -655,6 +655,122 @@ size_t unreadable_shared_queue::clean()
     const size_t count = base_shared_queue::clean();
     m_counter += count;
     return count;
+}
+
+//==============================================================================
+//  smart_shared_queue
+//==============================================================================
+/**
+ * Constructor
+ * @param ptr the pointer to the header of the queue
+ */
+smart_shared_queue::smart_shared_queue(void *ptr) : 
+    base_shared_queue(ptr)
+{
+    push_service_message(service_message_type::CODE_CONNECT);
+    m_head = tail();
+    m_counter = counter();
+    m_subscriptions_count = inc_subscriptions_count();
+}
+
+/**
+ * Constructor
+ * @param qid the identifier of the queue
+ * @param ptr the pointer to the header of the queue
+ * @param cpct the capacity of the queue
+ */
+smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_t cpct) : 
+    base_shared_queue(qid, ptr, cpct)
+{
+    push_service_message(service_message_type::CODE_CONNECT);
+    m_head = tail();
+    m_counter = counter();
+    m_subscriptions_count = inc_subscriptions_count();
+}
+
+/**
+ * Destructor
+ */
+//virtual
+smart_shared_queue::~smart_shared_queue()
+{
+    dec_subscriptions_count();
+    push_service_message(service_message_type::CODE_DISCONNECT);
+    while (1)
+    {
+        message_desc_type message_desc = base_shared_queue::get_message();
+        assert(message_desc.first);
+        service_message_type *pmessage = 
+                static_cast<service_message_type*>(message_desc.first.get());
+        if (pmessage->sid() == qbus::message::get_sid() && 
+            pmessage->tag() == service_message_type::TAG &&
+            pmessage->code() == service_message_type::CODE_DISCONNECT)
+        {
+            pop_message(message_desc);
+            break;
+        }
+        pop_message(message_desc);
+    }
+}
+
+/**
+ * Push a service message to the queue
+ * @param code the service code
+ */
+void smart_shared_queue::push_service_message(service_code_type code)
+{
+    unsigned int k = 0;
+    uint8_t data = code;
+    while (!push(service_message_type::TAG, &data, 1))
+    {
+        boost::detail::yield(k++);
+    }
+}
+
+/**
+ * Get a message from the queue
+ * @return the the message
+ */
+//virtual
+typename smart_shared_queue::message_desc_type smart_shared_queue::get_message() const
+{
+    do
+    {
+        message_desc_type message_desc = base_shared_queue::get_message();
+        if (message_desc.first)
+        {
+            if (message_desc.first->sid() != qbus::message::get_sid())
+            {
+                if (message_desc.first->tag() != service_message_type::TAG)
+                {
+                    return message_desc;
+                }
+                service_message_type *pmessage = 
+                    static_cast<service_message_type*>(message_desc.first.get());
+                switch (pmessage->code())
+                {
+                    case service_message_type::CODE_CONNECT:
+                        ++m_subscriptions_count;
+                        break;
+                    case service_message_type::CODE_DISCONNECT:
+                        --m_subscriptions_count;
+                        break;
+                }
+            }
+            const_cast<smart_shared_queue*>(this)->pop_message(message_desc);
+        }
+    } while (count() > 0);
+    return std::make_pair(pmessage_type(), 0);
+}
+
+/**
+ * Get the count of subscriptions
+ * @return the count of subscriptions
+ */
+//virtual
+size_t smart_shared_queue::subscriptions_count() const
+{
+    return m_subscriptions_count;
 }
 
 } //namespace queue

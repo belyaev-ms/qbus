@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include "qbus/message.h"
+#include "qbus/service_message.h"
 
 namespace qbus
 {
@@ -128,7 +129,7 @@ protected:
         COUNTER_SIZE      = sizeof(uint32_t),
         HEADER_SIZE       = COUNTER_OFFSET + COUNTER_SIZE,
     };
-    size_t subscriptions_count() const; ///< get the count of subscriptions
+    virtual size_t subscriptions_count() const; ///< get the count of subscriptions
     void subscriptions_count(const size_t value); ///< set the count of subscriptions
     size_t inc_subscriptions_count(); ///< increase the count of subscriptions
     size_t dec_subscriptions_count(); ///< reduce the count of subscriptions
@@ -142,8 +143,8 @@ protected:
     virtual pmessage_type make_message(void *ptr) const; ///< make an empty message
 private:
     uint8_t *m_ptr; ///< the pointer to the raw queue
-    pos_type m_head; ///< the self head of the queue
 protected:
+    pos_type m_head; ///< the self head of the queue
     uint32_t m_counter; ///< the counter of popped messages
 };
 
@@ -167,6 +168,26 @@ public:
     explicit unreadable_shared_queue(void *ptr);
     unreadable_shared_queue(const id_type qid, void *ptr, const size_t cpct);
     virtual size_t clean(); ///< collect garbage
+};
+
+/**
+ * The shared queue that has a lot of readers and writers and supports
+ * dynamic subscriber connection and subscriber disconnection
+ */
+class smart_shared_queue : public base_shared_queue
+{
+    typedef message::service_message<message_type> service_message_type;
+    typedef service_message_type::code_type service_code_type;
+public:
+    explicit smart_shared_queue(void *ptr);
+    smart_shared_queue(const id_type qid, void *ptr, const size_t cpct);
+    virtual ~smart_shared_queue();
+protected:
+    virtual message_desc_type get_message() const; ///< get a message from the queue
+    virtual size_t subscriptions_count() const; ///< get the count of subscriptions
+    void push_service_message(service_code_type code); ///< push a service message to the queue
+private:
+    mutable size_t m_subscriptions_count; ///< the local subscriptions count
 };
 
 } //namespace queue
