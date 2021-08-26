@@ -27,7 +27,10 @@ int main(int argc, char** argv)
             {
                 break;
             }
-            pconnector->push(7, &s[0], s.size() + 1, timeout);
+            if (!s.empty())
+            {
+                pconnector->push(1, &s[0], s.size() + 1, timeout);
+            }
             while (true)
             {
                 pmessage_type pmessage = pconnector->get(timeout);
@@ -35,16 +38,14 @@ int main(int argc, char** argv)
                 {
                     break;
                 }
-                std::cout << name << ":< ";
                 const size_t size = pmessage->data_size();
                 if (size > 0)
                 {
                     std::vector<char> s(size);
                     pmessage->unpack(&s[0]);
-                    std::cout << &s[0];
+                    std::cout << name << ":< " << &s[0] << std::endl;;
                 }
                 pconnector->pop(timeout);
-                std::cout << std::endl;
             }
         }
     }

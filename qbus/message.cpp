@@ -1,6 +1,9 @@
 #include "qbus/message.h"
 #include <string.h>
 #include <boost/interprocess/detail/atomic.hpp>
+#ifdef QBUS_TEST_ENABLED   
+#include <iostream>
+#endif
 
 namespace qbus
 {
@@ -154,6 +157,15 @@ size_t base_message::counter() const
 }
 
 /**
+ * Set the reference counter of the message
+ * @param value the reference counter of the message
+ */
+void base_message::counter(const size_t value)
+{
+    return boost::interprocess::ipcdetail::atomic_write32(reinterpret_cast<uint32_t*>(m_ptr + COUNTER_OFFSET), value);
+}
+
+/**
  * Increment reference counter of the message
  * @return the reference counter of the message
  */
@@ -276,6 +288,22 @@ void base_message::attach(pmessage_type pmessage)
 {
     m_pmessage = pmessage;
 }
+
+#ifdef QBUS_TEST_ENABLED
+/**
+ * Print the information of message attributes
+ */
+void base_message::print() const
+{
+    std::cout 
+        << "f=" << flags() 
+        << ",l=" << capacity()
+        << ",s=" << sid()
+        << ",t=" << tag() 
+        << ",c=" << counter() 
+        << std::endl;
+}
+#endif
 
 } //namespace message
 

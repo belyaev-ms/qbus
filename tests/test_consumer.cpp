@@ -24,6 +24,11 @@ int main(int argc, char** argv)
                 connector::input_connector<connector::multi_bidirectional_connector_type>,
                 connector::sharable_locker_with_sharable_pop_interface> >(name);
             break;
+        case 5:
+            pconnector = connector::make<connector::safe_connector<
+                connector::bidirectional_connector<connector::simple_connector<queue::smart_shared_queue> >,
+                connector::sharable_spinlocker_with_sharable_pop_interface> >(name);
+            break;
     }
     assert(pconnector);
    

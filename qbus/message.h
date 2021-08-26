@@ -38,6 +38,7 @@ public:
     tag_type tag() const; ///< get the tag of the message
     void tag(const tag_type value); ///< set the tag of the message
     size_t counter() const; ///< get the reference counter of the message
+    void counter(const size_t value); ///< set the reference counter of the message
     size_t inc_counter(); ///< increment the reference counter of the message
     size_t dec_counter(); ///< decrement the reference counter of the message
     size_t pack(const void *source, const size_t size); ///< pack the data to the message
@@ -46,6 +47,9 @@ public:
     size_t size() const; ///< get the size of the message
     size_t total_size() const; ///< get total size of all chained messages
     void attach(pmessage_type pmessage); ///< attach the message
+#ifdef QBUS_TEST_ENABLED
+    void print(const size_t pos) const; ///< print the information of message attributes
+#endif
     static size_t static_size(const size_t cpct)
     {
         return HEADER_SIZE + cpct;

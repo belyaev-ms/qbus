@@ -29,6 +29,11 @@ int main(int argc, char** argv)
                 connector::bidirectional_connector<connector::multi_output_connector_type>,
                 connector::sharable_locker_with_sharable_pop_interface> >(name);
             break;
+        case 5:
+            pconnector = connector::make<connector::safe_connector<
+                connector::bidirectional_connector<connector::simple_connector<queue::smart_shared_queue> >,
+                connector::sharable_spinlocker_with_sharable_pop_interface> >(name);
+            break;
     }
     assert(pconnector);
     
@@ -52,14 +57,14 @@ int main(int argc, char** argv)
             const std::string s = "the test message " + boost::lexical_cast<std::string>(i);
             ts = get_monotonic_time();
             std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: " << s << std::endl;
-            if (!pconnector->push(0, &s[0], s.size() + 1, timeout))
+            if (!pconnector->push(1, &s[0], s.size() + 1, timeout))
             {
                 ts = get_monotonic_time();
                 std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: break" << std::endl;
                 boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
                 return -1;
             }
-            if (option < 3)
+            if (option < 3 || option == 5 && pconnector->get())
             {
                 pconnector->pop();
             }

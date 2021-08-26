@@ -3,6 +3,10 @@
 #include <string.h>
 #include <boost/make_shared.hpp>
 #include <boost/interprocess/detail/atomic.hpp>
+#ifdef QBUS_TEST_ENABLED 
+#include <iostream>
+#endif
+#define DEC_COUNTER
 
 namespace qbus
 {
@@ -282,6 +286,63 @@ void base_queue::pop()
     }
 }
 
+#ifdef QBUS_TEST_ENABLED
+/**
+ * Get the real next busy region
+ * @param pprev_region the pointer to the previous busy region
+ * @return the next busy region
+ */
+typename base_queue::region_type base_queue::get_real_busy_region(region_type *pprev_region) const
+{
+    const size_t cpct = base_queue::capacity();
+    const pos_type tl = base_queue::tail();
+    if (NULL == pprev_region)
+    {
+        const pos_type hd = base_queue::head();
+        return (base_queue::count() == 0 || hd < tl) ?
+            region_type(hd, tl - hd) : 
+            region_type(hd, cpct - hd);
+    }
+    else
+    {
+        const pos_type hd = (pprev_region->first + pprev_region->second) % cpct;
+        return hd < tl ?
+            region_type(hd, tl - hd) : 
+            region_type(hd, cpct - hd);
+    }
+}
+
+/**
+ * Print the information of the queue structure
+ */
+void base_queue::print() const
+{
+    std::cout << "===" << std::endl;
+    region_type region;
+    region_type *pprev_region = NULL;
+    while (true)
+    {
+        do
+        {
+            region = get_real_busy_region(pprev_region);
+            pprev_region = &region;
+            if (0 == region.second)
+            {
+                return;
+            }
+        } while (region.second <= message::base_message::static_size(0));
+        pmessage_type pmessage = make_message(data(region.first));
+        region.second = pmessage->size();
+        std::cout << region.first << ",";
+        pmessage->print();
+        if ((region.first + region.second) % capacity() == tail())
+        {
+            break;
+        }
+    }
+}
+#endif
+
 //==============================================================================
 //  simple_queue
 //==============================================================================
@@ -334,7 +395,11 @@ typename simple_queue::message_desc_type simple_queue::get_message() const
 //virtual 
 void simple_queue::pop_message(const message_desc_type& message_desc)
 {
+#ifdef DEC_COUNTER
+    message_desc.first->dec_counter();
+#else
     message_desc.first->inc_counter();
+#endif
     head(message_desc.second);
     count(count() - 1); ///< !!!! dec count && inc count
 }
@@ -512,7 +577,12 @@ size_t base_shared_queue::clean()
         while (cnt-- > 0)
         {
             message_desc_type message_desc = base_shared_queue::get_message();
+#ifdef DEC_COUNTER
+            if (!message_desc.first || message_desc.first->counter() > 0)
+#else
             if (!message_desc.first || message_desc.first->counter() < subscriptions_count())
+#endif
+                
             {
                 break;
             }
@@ -537,6 +607,9 @@ typename base_shared_queue::message_desc_type base_shared_queue::push_message(co
     message_desc_type message_desc = message_type::static_make_message(*this, data, size);
     if (message_desc.first)
     {
+#ifdef DEC_COUNTER        
+        message_desc.first->counter(base_shared_queue::subscriptions_count());
+#endif
         counter(counter() + 1);
     }
     return message_desc;
@@ -559,7 +632,11 @@ typename base_shared_queue::message_desc_type base_shared_queue::get_message() c
 //virtual 
 void base_shared_queue::pop_message(const message_desc_type& message_desc)
 {
+#ifdef DEC_COUNTER
+    message_desc.first->dec_counter();
+#else
     message_desc.first->inc_counter();
+#endif
     m_head = message_desc.second % capacity();
     ++m_counter;
 }
@@ -754,6 +831,8 @@ typename smart_shared_queue::message_desc_type smart_shared_queue::get_message()
                         break;
                     case service_message_type::CODE_DISCONNECT:
                         --m_subscriptions_count;
+                        break;
+                    default:
                         break;
                 }
             }

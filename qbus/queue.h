@@ -71,13 +71,17 @@ protected:
     virtual void pop_message(const message_desc_type& message_desc) = 0; ///< pop a message from the queue
     virtual pmessage_type make_message(void *ptr, const size_t cpct) const = 0; ///< make an empty message
     virtual pmessage_type make_message(void *ptr) const = 0; ///< make an empty message
-    region_type get_free_region(region_type *pprev_region = NULL) const; ///< get a next free region
-    region_type get_busy_region(region_type *pprev_region = NULL) const; ///< get a next busy region
+    region_type get_free_region(region_type *pprev_region = NULL) const; ///< get the next free region
+    region_type get_busy_region(region_type *pprev_region = NULL) const; ///< get the next busy region
 private:
     base_queue();
     base_queue(const base_queue&);
     base_queue& operator=(const base_queue&);
     void capacity(const size_t capacity); ///< set the capacity of of the queue
+#ifdef QBUS_TEST_ENABLED    
+    region_type get_real_busy_region(region_type *pprev_region = NULL) const; ///< get the real next busy region
+    void print() const; ///< print the information of the queue structure
+#endif
 private:
     uint8_t *m_ptr; ///< the pointer to the raw queue
 };
