@@ -162,7 +162,7 @@ size_t base_message::counter() const
  */
 void base_message::counter(const size_t value)
 {
-    return boost::interprocess::ipcdetail::atomic_write32(reinterpret_cast<uint32_t*>(m_ptr + COUNTER_OFFSET), value);
+    boost::interprocess::ipcdetail::atomic_write32(reinterpret_cast<uint32_t*>(m_ptr + COUNTER_OFFSET), value);
 }
 
 /**
