@@ -133,7 +133,7 @@ protected:
         COUNTER_SIZE      = sizeof(uint32_t),
         HEADER_SIZE       = COUNTER_OFFSET + COUNTER_SIZE,
     };
-    virtual size_t subscriptions_count() const; ///< get the count of subscriptions
+    size_t subscriptions_count() const; ///< get the count of subscriptions
     void subscriptions_count(const size_t value); ///< set the count of subscriptions
     size_t inc_subscriptions_count(); ///< increase the count of subscriptions
     size_t dec_subscriptions_count(); ///< reduce the count of subscriptions
@@ -188,10 +188,7 @@ public:
     virtual ~smart_shared_queue();
 protected:
     virtual message_desc_type get_message() const; ///< get a message from the queue
-    virtual size_t subscriptions_count() const; ///< get the count of subscriptions
     void push_service_message(service_code_type code); ///< push a service message to the queue
-private:
-    mutable size_t m_subscriptions_count; ///< the local subscriptions count
 };
 
 } //namespace queue

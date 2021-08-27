@@ -6,7 +6,6 @@
 #ifdef QBUS_TEST_ENABLED 
 #include <iostream>
 #endif
-#define DEC_COUNTER
 
 namespace qbus
 {
@@ -395,11 +394,7 @@ typename simple_queue::message_desc_type simple_queue::get_message() const
 //virtual 
 void simple_queue::pop_message(const message_desc_type& message_desc)
 {
-#ifdef DEC_COUNTER
     message_desc.first->dec_counter();
-#else
-    message_desc.first->inc_counter();
-#endif
     head(message_desc.second);
     count(count() - 1); ///< !!!! dec count && inc count
 }
@@ -461,7 +456,6 @@ base_shared_queue::base_shared_queue(const id_type qid, void *ptr, const size_t 
  * Get the count of subscriptions
  * @return the count of subscriptions
  */
-//virtual
 size_t base_shared_queue::subscriptions_count() const
 {
     return boost::interprocess::ipcdetail::atomic_read32(reinterpret_cast<uint32_t*>(m_ptr + SUBS_COUNT_OFFSET));
@@ -577,12 +571,7 @@ size_t base_shared_queue::clean()
         while (cnt-- > 0)
         {
             message_desc_type message_desc = base_shared_queue::get_message();
-#ifdef DEC_COUNTER
             if (!message_desc.first || message_desc.first->counter() > 0)
-#else
-            if (!message_desc.first || message_desc.first->counter() < subscriptions_count())
-#endif
-                
             {
                 break;
             }
@@ -607,9 +596,7 @@ typename base_shared_queue::message_desc_type base_shared_queue::push_message(co
     message_desc_type message_desc = message_type::static_make_message(*this, data, size);
     if (message_desc.first)
     {
-#ifdef DEC_COUNTER        
-        message_desc.first->counter(base_shared_queue::subscriptions_count());
-#endif
+        message_desc.first->counter(subscriptions_count());
         counter(counter() + 1);
     }
     return message_desc;
@@ -632,11 +619,7 @@ typename base_shared_queue::message_desc_type base_shared_queue::get_message() c
 //virtual 
 void base_shared_queue::pop_message(const message_desc_type& message_desc)
 {
-#ifdef DEC_COUNTER
     message_desc.first->dec_counter();
-#else
-    message_desc.first->inc_counter();
-#endif
     m_head = message_desc.second % capacity();
     ++m_counter;
 }
@@ -747,7 +730,7 @@ smart_shared_queue::smart_shared_queue(void *ptr) :
     push_service_message(service_message_type::CODE_CONNECT);
     m_head = tail();
     m_counter = counter();
-    m_subscriptions_count = inc_subscriptions_count();
+    inc_subscriptions_count();
 }
 
 /**
@@ -762,7 +745,7 @@ smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_
     push_service_message(service_message_type::CODE_CONNECT);
     m_head = tail();
     m_counter = counter();
-    m_subscriptions_count = inc_subscriptions_count();
+    inc_subscriptions_count();
 }
 
 /**
@@ -827,10 +810,8 @@ typename smart_shared_queue::message_desc_type smart_shared_queue::get_message()
                 switch (pmessage->code())
                 {
                     case service_message_type::CODE_CONNECT:
-                        ++m_subscriptions_count;
                         break;
                     case service_message_type::CODE_DISCONNECT:
-                        --m_subscriptions_count;
                         break;
                     default:
                         break;
@@ -840,16 +821,6 @@ typename smart_shared_queue::message_desc_type smart_shared_queue::get_message()
         }
     } while (count() > 0);
     return std::make_pair(pmessage_type(), 0);
-}
-
-/**
- * Get the count of subscriptions
- * @return the count of subscriptions
- */
-//virtual
-size_t smart_shared_queue::subscriptions_count() const
-{
-    return m_subscriptions_count;
 }
 
 } //namespace queue
