@@ -48,7 +48,7 @@ public:
     size_t total_size() const; ///< get total size of all chained messages
     void attach(pmessage_type pmessage); ///< attach the message
 #ifdef QBUS_TEST_ENABLED
-    void print(const size_t pos) const; ///< print the information of message attributes
+    void print() const; ///< print the information of message attributes
 #endif
     static size_t static_size(const size_t cpct)
     {

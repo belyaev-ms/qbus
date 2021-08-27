@@ -64,9 +64,15 @@ int main(int argc, char** argv)
                 boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
                 return -1;
             }
-            if (option < 3 || option == 5 && pconnector->get())
+            if (option < 3 || option == 5 && pconnector->get(timeout))
             {
-                pconnector->pop();
+                if (!pconnector->pop(timeout))
+                {
+                    ts = get_monotonic_time();
+                    std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: abort" << std::endl;
+                    boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
+                    return -1;
+                }
             }
         }
         {
