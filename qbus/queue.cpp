@@ -570,7 +570,7 @@ size_t base_shared_queue::clean()
         size_t count = 0;
         while (cnt-- > 0)
         {
-            message_desc_type message_desc = base_shared_queue::get_message();
+            const message_desc_type message_desc = base_shared_queue::get_message();
             if (!message_desc.first || message_desc.first->counter() > 0)
             {
                 break;
@@ -619,7 +619,8 @@ typename base_shared_queue::message_desc_type base_shared_queue::get_message() c
 //virtual 
 void base_shared_queue::pop_message(const message_desc_type& message_desc)
 {
-    message_desc.first->dec_counter();
+    const size_t counter = message_desc.first->dec_counter();
+    assert(counter != uint32_t(-1));
     m_head = message_desc.second % capacity();
     ++m_counter;
 }
@@ -754,8 +755,8 @@ smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_
 //virtual
 smart_shared_queue::~smart_shared_queue()
 {
-    dec_subscriptions_count();
     push_service_message(service_message_type::CODE_DISCONNECT);
+    dec_subscriptions_count();
     while (1)
     {
         message_desc_type message_desc = base_shared_queue::get_message();
@@ -797,28 +798,26 @@ typename smart_shared_queue::message_desc_type smart_shared_queue::get_message()
     do
     {
         message_desc_type message_desc = base_shared_queue::get_message();
-        if (message_desc.first)
+        assert(message_desc.first);
+        if (message_desc.first->sid() != qbus::message::get_sid())
         {
-            if (message_desc.first->sid() != qbus::message::get_sid())
+            if (message_desc.first->tag() != service_message_type::TAG)
             {
-                if (message_desc.first->tag() != service_message_type::TAG)
-                {
-                    return message_desc;
-                }
-                service_message_type *pmessage = 
-                    static_cast<service_message_type*>(message_desc.first.get());
-                switch (pmessage->code())
-                {
-                    case service_message_type::CODE_CONNECT:
-                        break;
-                    case service_message_type::CODE_DISCONNECT:
-                        break;
-                    default:
-                        break;
-                }
+                return message_desc;
             }
-            const_cast<smart_shared_queue*>(this)->pop_message(message_desc);
+            service_message_type *pmessage = 
+                static_cast<service_message_type*>(message_desc.first.get());
+            switch (pmessage->code())
+            {
+                case service_message_type::CODE_CONNECT:
+                    break;
+                case service_message_type::CODE_DISCONNECT:
+                    break;
+                default:
+                    break;
+            }
         }
+        const_cast<smart_shared_queue*>(this)->pop_message(message_desc);
     } while (count() > 0);
     return std::make_pair(pmessage_type(), 0);
 }
