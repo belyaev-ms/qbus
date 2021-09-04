@@ -43,13 +43,16 @@ int main(int argc, char** argv)
             ts = get_monotonic_time();
             std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: open " << argc << std::endl;
         }
+        struct timespec dt = get_monotonic_time();
         while (true)
         {
             pmessage_type pmessage = pconnector->get(timeout);
             if (!pmessage)
             {
                 ts = get_monotonic_time();
+                dt = ts - dt - timeout;
                 std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: close" << std::endl;
+                std::cerr << "rd dt = " << dt.tv_sec << "." << dt.tv_nsec << std::endl;
                 boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex);
                 return 0;
             }

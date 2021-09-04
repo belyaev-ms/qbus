@@ -52,6 +52,7 @@ int main(int argc, char** argv)
         {
             boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_consumer);
         }
+        struct timespec dt = get_monotonic_time();
         for (size_t i = 0; i < 1024; ++i)
         {
             const std::string s = "the test message " + boost::lexical_cast<std::string>(i);
@@ -64,7 +65,8 @@ int main(int argc, char** argv)
                 boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
                 return -1;
             }
-            if (option < 3 || option == 5 && pconnector->get(timeout))
+            // !!! for option 5, the 'get' operation is required to clear service messages
+            if (option < 3 || option == 5 && pconnector->get())
             {
                 if (!pconnector->pop(timeout))
                 {
@@ -78,7 +80,10 @@ int main(int argc, char** argv)
         {
             boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(mutex_producer);
             ts = get_monotonic_time();
-            std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: close" << std::endl;
+            dt = ts - dt;
+            std::cout << ts.tv_sec << "." << ts.tv_nsec << "\t: close " 
+                << dt.tv_sec << "." << dt.tv_nsec << std::endl;
+            std::cerr << "wr dt = " << dt.tv_sec << "." << dt.tv_nsec << std::endl;
         }
     }
     return 0;
