@@ -6,15 +6,15 @@
 namespace qbus
 {
 
-const bool operator==(const struct timespec& ts1, const struct timespec& ts2);
-const bool operator!=(const struct timespec& ts1, const struct timespec& ts2);
-const bool operator<(const struct timespec& ts1, const struct timespec& ts2);
-const bool operator>(const struct timespec& ts1, const struct timespec& ts2);
-const bool operator<=(const struct timespec& ts1, const struct timespec& ts2);
-const bool operator>=(const struct timespec& ts1, const struct timespec& ts2);
-const struct timespec operator+(const struct timespec& ts1, const struct timespec& ts2);
-const struct timespec operator-(const struct timespec& ts1, const struct timespec& ts2);
-const struct timespec get_monotonic_time(); ///< get the current monotonic time
+bool operator==(const struct timespec& ts1, const struct timespec& ts2);
+bool operator!=(const struct timespec& ts1, const struct timespec& ts2);
+bool operator<(const struct timespec& ts1, const struct timespec& ts2);
+bool operator>(const struct timespec& ts1, const struct timespec& ts2);
+bool operator<=(const struct timespec& ts1, const struct timespec& ts2);
+bool operator>=(const struct timespec& ts1, const struct timespec& ts2);
+struct timespec operator+(const struct timespec& ts1, const struct timespec& ts2);
+struct timespec operator-(const struct timespec& ts1, const struct timespec& ts2);
+struct timespec get_monotonic_time(); ///< get the current monotonic time
 
 } //namespace qbus
 

@@ -4,37 +4,37 @@
 namespace qbus
 {
 
-const bool operator==(const struct timespec& ts1, const struct timespec& ts2)
+bool operator==(const struct timespec& ts1, const struct timespec& ts2)
 {
     return ts1.tv_sec == ts2.tv_sec && ts1.tv_nsec == ts2.tv_nsec;
 }
 
-const bool operator!=(const struct timespec& ts1, const struct timespec& ts2)
+bool operator!=(const struct timespec& ts1, const struct timespec& ts2)
 {
     return !(ts1 == ts2);
 }
 
-const bool operator<(const struct timespec& ts1, const struct timespec& ts2)
+bool operator<(const struct timespec& ts1, const struct timespec& ts2)
 {
     return ts1.tv_sec < ts2.tv_sec || (ts1.tv_sec == ts2.tv_sec && ts1.tv_nsec < ts2.tv_nsec);
 }
 
-const bool operator>(const struct timespec& ts1, const struct timespec& ts2)
+bool operator>(const struct timespec& ts1, const struct timespec& ts2)
 {
     return ts1.tv_sec > ts2.tv_sec || (ts1.tv_sec == ts2.tv_sec && ts1.tv_nsec > ts2.tv_nsec);
 }
 
-const bool operator<=(const struct timespec& ts1, const struct timespec& ts2)
+bool operator<=(const struct timespec& ts1, const struct timespec& ts2)
 {
     return !(ts1 > ts2);
 }
 
-const bool operator>=(const struct timespec& ts1, const struct timespec& ts2)
+bool operator>=(const struct timespec& ts1, const struct timespec& ts2)
 {
     return !(ts1 < ts2);
 }
 
-const struct timespec operator+(const struct timespec& ts1, const struct timespec& ts2)
+struct timespec operator+(const struct timespec& ts1, const struct timespec& ts2)
 {
     timespec result;
     result.tv_sec = ts1.tv_sec + ts2.tv_sec;
@@ -47,7 +47,7 @@ const struct timespec operator+(const struct timespec& ts1, const struct timespe
     return result;
 }
 
-const struct timespec operator-(const struct timespec& ts1, const struct timespec& ts2)
+struct timespec operator-(const struct timespec& ts1, const struct timespec& ts2)
 {
     timespec result;
     if (ts1.tv_nsec < ts2.tv_nsec)
@@ -67,7 +67,7 @@ const struct timespec operator-(const struct timespec& ts1, const struct timespe
  * Get the current monotonic time
  * @return the current monotonic time
  */
-const struct timespec get_monotonic_time()
+struct timespec get_monotonic_time()
 {
     struct timespec ts = {0, 0};
     while (clock_gettime(CLOCK_MONOTONIC, &ts) != 0);
