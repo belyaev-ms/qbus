@@ -50,6 +50,7 @@ public:
     bool pop(); ///< remove the next message from the connector
     bool pop(const struct timespec& timeout); ///< remove the next message from the connector
     bool enabled() const; ///< check if the connected is enabled
+    size_t capacity() const; ///< get the capacity of the connector
 protected:
     virtual bool do_create(const id_type cid, const size_t size) = 0; ///< create the connector
     virtual bool do_open() = 0; ///< open the connector
@@ -59,6 +60,7 @@ protected:
     virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the connector
     virtual bool do_pop() = 0; ///< remove the next message from the connector
     virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the connector
+    virtual size_t get_capacity() const = 0; ///< get the capacity of the connector
 private:
     const std::string m_name;
     const direction_type m_type;
@@ -104,6 +106,7 @@ protected:
     virtual bool do_push(const tag_type tag, const void *data, const size_t sz); ///< push data to the connector
     virtual const pmessage_type do_get() const; ///< get the next message from the connector
     virtual bool do_pop(); ///< remove the next message from the connector
+    virtual size_t get_capacity() const; ///< get the capacity of the connector
     void create_queue(const id_type cid, const size_t size); ///< create the queue
     void open_queue(); ///< open the queue
     void free_queue(); ///< free the queue
@@ -436,6 +439,18 @@ bool simple_connector<Queue>::do_pop()
     m_pqueue->pop();
     return true;
 }
+
+/**
+ * Get the capacity of the connector
+ * @return the capacity of the connector
+ */
+//virtual
+template <typename Queue>
+size_t simple_connector<Queue>::get_capacity() const
+{
+    return m_pqueue->capacity();
+}
+
 
 //==============================================================================
 //  output_connector

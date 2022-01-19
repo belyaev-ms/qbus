@@ -8,6 +8,7 @@ add_library(qbus STATIC
     queue.cpp
     message.cpp
     connector.cpp
+    bus.cpp
     memory.cpp
 )
 target_link_libraries(qbus 

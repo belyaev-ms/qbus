@@ -158,6 +158,15 @@ bool base_connector::enabled() const
 }
 
 /**
+ * Get the capacity of the connector
+ * @return the capacity of the connector
+ */
+size_t base_connector::capacity() const
+{
+    return m_opened ? get_capacity() : 0;
+}
+
+/**
  * Push data to the connector
  * @param tag the tag of the data
  * @param data the data
