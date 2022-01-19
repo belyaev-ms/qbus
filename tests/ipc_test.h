@@ -24,10 +24,12 @@ const std::string test_consumer_log(const size_t i)
     return boost::str(boost::format(test_consumer_log_) % i);
 }
 
-void run_process(const std::string& s)
+void run_process(const std::string& s, const size_t id)
 {
     BOOST_TEST_MESSAGE("\trun process '" << s << "' ...");
-    const int result = std::system((s + QBUS_IPC_TEST_PARAM).c_str());
+    std::stringstream ss;
+    ss << s << QBUS_IPC_TEST_PARAM << " " << id;
+    const int result = std::system(ss.str().c_str());
     BOOST_TEST_MESSAGE("\tfinish process '" << s << "' " << result);
 }
 
@@ -96,14 +98,14 @@ BOOST_AUTO_TEST_CASE(one_server_and_few_clients)
         {
             boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(server_mutex);
             const std::string s = test_producer + " > " + test_producer_log;
-            pthread = boost::make_shared<boost::thread>(boost::bind(&run_process, s));
+            pthread = boost::make_shared<boost::thread>(boost::bind(&run_process, s, 0));
             sleep(1);
             BOOST_TEST_MESSAGE("start processes '" + test_consumer + "':");
             {
                 for (size_t i = 0; i < count; ++i)
                 {
                     const std::string s = test_consumer + " > " + test_consumer_log(i);
-                    boost::thread *pth = new boost::thread(boost::bind(&run_process, s));
+                    boost::thread *pth = new boost::thread(boost::bind(&run_process, s, i + 1));
                     threads.add_thread(pth);
                 }
             }
