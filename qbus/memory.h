@@ -29,7 +29,7 @@ private:
     typedef boost::interprocess::mapped_region region_type;
     typedef boost::shared_ptr<region_type> pregion_type;
 private:
-    const std::string& m_name;
+    const std::string m_name;
     pmemory_type m_pmemory;
     pregion_type m_pregion;
 };
