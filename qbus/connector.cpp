@@ -273,8 +273,7 @@ bool shared_connector::do_open()
 
 /**
  * Create the shared memory
- * @param cid the identifier of the connector
- * @param size the size of a queue
+ * @param size the size of shared memory
  * @return the result of the creating
  */
 bool shared_connector::create_memory(const size_t size)
