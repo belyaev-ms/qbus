@@ -20,7 +20,7 @@ public:
     bool create(const size_t size); ///< create the memory
     bool open(); ///< open the memory
     size_t size() const; ///< get the size of the memory
-    void *get(); ///< get the pointer to the memory
+    void *get() const; ///< get the pointer to the memory
 protected:
     void remove(); ///< remove the memory
 private:

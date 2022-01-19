@@ -615,7 +615,7 @@ void *base_safe_connector<Connector, Locker>::get_memory()
 template <typename Connector, typename Locker>
 size_t base_safe_connector<Connector, Locker>::memory_size(const size_t size) const
 {
-    return base_type::memory_size(size) +  sizeof(locker_type) +
+    return base_type::memory_size(size) + sizeof(locker_type) +
         sizeof(barrier_type);
 }
 

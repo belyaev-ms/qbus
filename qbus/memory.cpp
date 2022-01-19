@@ -76,14 +76,13 @@ bool shared_memory::open()
         }
     }
     return false;
-
 }
 
 /**
  * Get the pointer to the memory
  * @return the pointer to the memory
  */
-void *shared_memory::get()
+void *shared_memory::get() const
 {
     return m_pregion ? m_pregion->get_address() : NULL;
 }
