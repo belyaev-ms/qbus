@@ -87,11 +87,11 @@ pconnector_type base_bus::make_connector(const id_type id) const
         return pconnector;
     }
     const specification_type sp = spec();
-    if (sp.capacity_factor > 0)
+    if (m_pconnectors.empty() || sp.capacity_factor > 0)
     {
         size_type old_capacity = !m_pconnectors.empty() ? front_connector()->capacity() : 0;
         size_type new_capacity = std::max(sp.min_capacity, old_capacity * (sp.capacity_factor + 100) / 100);
-        new_capacity = std::max(new_capacity, sp.max_capacity);
+        new_capacity = std::min(new_capacity, sp.max_capacity);
         if (new_capacity > old_capacity && pconnector->create(sp.id, new_capacity))
         {
             return pconnector;
@@ -126,11 +126,20 @@ bool base_bus::add_connector() const
  */
 bool base_bus::remove_connector() const
 {
-    if (m_pconnectors.size() > 1)
+    controlblock_type& cb = get_controlblock();
+    if (cb.back_connector_id != cb.front_connector_id)
     {
-        controlblock_type& cb = get_controlblock();
         m_pconnectors.pop_back();
         ++cb.back_connector_id;
+        if (m_pconnectors.empty())
+        {
+            pconnector_type pconnector = make_connector(cb.back_connector_id);
+            if (!pconnector)
+            {
+                return false;
+            }
+            m_pconnectors.push_back(pconnector);
+        }
         return true;
     }
     return false;
@@ -289,7 +298,7 @@ const pmessage_type base_bus::do_get() const
     {
         if (!remove_connector())
         {
-            return NULL;
+            return pmessage_type();
         }
         pmessage = back_connector()->get();
     }
