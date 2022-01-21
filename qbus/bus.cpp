@@ -15,7 +15,8 @@ namespace bus
  * @param name the name of the bus
  */
 base_bus::base_bus(const std::string& name) :
-    m_name(name)
+    m_name(name),
+    m_opened(false)
 {
 }
 
