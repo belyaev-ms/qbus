@@ -1,5 +1,4 @@
 #include "qbus/common.h"
-#include <boost/smart_ptr/detail/spinlock.hpp>
 
 namespace qbus
 {

@@ -25,7 +25,7 @@ shared_locker::shared_locker() :
  * Try to book the exclusive lock
  * @return the type of the current lock
  */
-const shared_locker::lock_state shared_locker::try_book_lock()
+shared_locker::lock_state shared_locker::try_book_lock()
 {
     guard_type guard(m_lock);
     if (0 == m_scoped)
@@ -40,7 +40,7 @@ const shared_locker::lock_state shared_locker::try_book_lock()
  * Get the count of the sharable lock
  * @return the count of the sharable lock
  */
-const unsigned int shared_locker::count_sharable()
+unsigned int shared_locker::count_sharable()
 {
     guard_type guard(m_lock);
     return m_sharable;
@@ -50,7 +50,7 @@ const unsigned int shared_locker::count_sharable()
  * Try to set the exclusive lock
  * @return the result of the setting
  */
-const bool shared_locker::try_lock()
+bool shared_locker::try_lock()
 {
     guard_type guard(m_lock);
     if (0 == m_scoped && 0 == m_sharable)
@@ -91,7 +91,7 @@ void shared_locker::lock()
  * @param timeout the allowable timeout of the setting
  * @return the result of the setting
  */
-const bool shared_locker::timed_lock(const struct timespec& timeout)
+bool shared_locker::timed_lock(const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     unsigned int k = 0;
@@ -134,7 +134,7 @@ void shared_locker::unlock()
  * Try to set the sharable lock
  * @return the result of the setting
  */
-const bool shared_locker::try_lock_sharable()
+bool shared_locker::try_lock_sharable()
 {
     guard_type guard(m_lock);
     if (0 == m_scoped && m_sharable < UINT_MAX)
@@ -166,7 +166,7 @@ void shared_locker::lock_sharable()
  * @param timeout the allowable timeout of the setting
  * @return the result of the setting
  */
-const bool shared_locker::timed_lock_sharable(const struct timespec& timeout)
+bool shared_locker::timed_lock_sharable(const struct timespec& timeout)
 {
     const struct timespec ts = get_monotonic_time() + timeout;
     unsigned int k = 0;
@@ -245,7 +245,7 @@ void shared_barrier::wait() const
  * @param the allowable timeout of the waiting
  * @return the result of the waiting
  */
-const bool shared_barrier::wait(const struct timespec& timeout) const
+bool shared_barrier::wait(const struct timespec& timeout) const
 {
     knock();
     return expect(timeout);
@@ -266,7 +266,7 @@ void shared_barrier::expect() const
  * @param the allowable timeout of the waiting
  * @return the result of the waiting
  */
-const bool shared_barrier::expect(const struct timespec& timeout) const
+bool shared_barrier::expect(const struct timespec& timeout) const
 {
     boost::posix_time::ptime abs_time = boost::get_system_time() +
         boost::posix_time::seconds(timeout.tv_sec) +

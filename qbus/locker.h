@@ -18,12 +18,12 @@ class shared_locker
 public:
     shared_locker();
     void lock();
-    const bool timed_lock(const struct timespec& timeout);
-    const bool try_lock();
+    bool timed_lock(const struct timespec& timeout);
+    bool try_lock();
     void unlock();
     void lock_sharable();
-    const bool timed_lock_sharable(const struct timespec& timeout);
-    const bool try_lock_sharable();
+    bool timed_lock_sharable(const struct timespec& timeout);
+    bool try_lock_sharable();
     void unlock_sharable();
 protected:
     enum lock_state
@@ -32,8 +32,8 @@ protected:
         LS_SHARABLE,
         LS_NONE
     };
-    const lock_state try_book_lock();
-    const unsigned int count_sharable();
+    lock_state try_book_lock();
+    unsigned int count_sharable();
 private:
     shared_locker(const shared_locker& );
     shared_locker& operator=(const shared_locker& );
@@ -66,10 +66,10 @@ public:
     scoped_lock(locker_type& locker, const struct timespec& timeout);
     ~scoped_lock();
     void lock();
-    const bool try_lock();
-    const bool timed_lock(const struct timespec& timeout);
+    bool try_lock();
+    bool timed_lock(const struct timespec& timeout);
     void unlock();
-    const bool owns() const;
+    bool owns() const;
 private:
     scoped_lock();
     scoped_lock(const scoped_lock& );
@@ -107,10 +107,10 @@ public:
     sharable_lock(locker_type& locker, const struct timespec& timeout);
     ~sharable_lock();
     void lock();
-    const bool try_lock();
-    const bool timed_lock(const struct timespec& timeout);
+    bool try_lock();
+    bool timed_lock(const struct timespec& timeout);
     void unlock();
-    const bool owns() const;
+    bool owns() const;
 private:
     sharable_lock();
     sharable_lock(const sharable_lock& );
@@ -142,9 +142,9 @@ public:
     void open(); ///< open the barrier
     void knock() const; ///< knock on the barrier
     void wait() const; ///< wait until barrier opens
-    const bool wait(const struct timespec& timeout) const; ///< wait until barrier opens
+    bool wait(const struct timespec& timeout) const; ///< wait until barrier opens
     void expect() const; ///< expect the barrier to open
-    const bool expect(const struct timespec& timeout) const; ///< expect the barrier to open
+    bool expect(const struct timespec& timeout) const; ///< expect the barrier to open
 private:
     typedef boost::interprocess::interprocess_mutex locker_type;
     typedef boost::interprocess::interprocess_semaphore barrier_type;
@@ -244,7 +244,7 @@ void scoped_lock<Locker>::lock()
  * @return
  */
 template <typename Locker>
-const bool scoped_lock<Locker>::try_lock()
+bool scoped_lock<Locker>::try_lock()
 {
     if (m_locked)
     {
@@ -260,7 +260,7 @@ const bool scoped_lock<Locker>::try_lock()
  * @return the result of the setting
  */
 template <typename Locker>
-const bool scoped_lock<Locker>::timed_lock(const struct timespec& timeout)
+bool scoped_lock<Locker>::timed_lock(const struct timespec& timeout)
 {
     if (m_locked)
     {
@@ -289,7 +289,7 @@ void scoped_lock<Locker>::unlock()
  * @return the result of the checking
  */
 template <typename Locker>
-const bool scoped_lock<Locker>::owns() const
+bool scoped_lock<Locker>::owns() const
 {
     return m_locked;
 }
@@ -384,7 +384,7 @@ void sharable_lock<Locker>::lock()
  * @return
  */
 template <typename Locker>
-const bool sharable_lock<Locker>::try_lock()
+bool sharable_lock<Locker>::try_lock()
 {
     if (m_locked)
     {
@@ -400,7 +400,7 @@ const bool sharable_lock<Locker>::try_lock()
  * @return the result of the setting
  */
 template <typename Locker>
-const bool sharable_lock<Locker>::timed_lock(const struct timespec& timeout)
+bool sharable_lock<Locker>::timed_lock(const struct timespec& timeout)
 {
     if (m_locked)
     {
@@ -429,7 +429,7 @@ void sharable_lock<Locker>::unlock()
  * @return the result of the checking
  */
 template <typename Locker>
-const bool sharable_lock<Locker>::owns() const
+bool sharable_lock<Locker>::owns() const
 {
     return m_locked;
 }
