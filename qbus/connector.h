@@ -264,7 +264,6 @@ protected:
 private:
     mutable locker_type *m_plocker;
     mutable barrier_type *m_pbarrier;
-    bool m_owner;
 };
 
 /**
@@ -580,8 +579,7 @@ template <typename Connector, typename Locker>
 base_safe_connector<Connector, Locker>::base_safe_connector(const std::string& name) :
     base_type(name),
     m_plocker(NULL),
-    m_pbarrier(NULL),
-    m_owner(false)
+    m_pbarrier(NULL)
 {
 }
 
@@ -594,12 +592,18 @@ base_safe_connector<Connector, Locker>::~base_safe_connector()
 {
     if (base_type::enabled())
     {
+        uint8_t *ptr = reinterpret_cast<uint8_t*>(base_type::get_memory());
+        spinlock *pspinlock = reinterpret_cast<spinlock*>(ptr);
+        ptr += sizeof(spinlock);
+        scoped_lock<spinlock> guard(*pspinlock);
+        volatile uint32_t *pcounter = reinterpret_cast<volatile uint32_t*>(ptr);
         {
             scoped_lock_type lock(*m_plocker);
             base_type::free_queue();
         }
-        if (m_owner)
+        if (--(*pcounter) == 0)
         {
+            m_pbarrier->~barrier_type();
             m_plocker->~locker_type();
         }
     }
@@ -618,13 +622,20 @@ bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
 {
     if (base_type::create_memory(size))
     {
+        /* shared memory object are automatically initialized and the spinlock
+         * is locked by default */
         uint8_t *ptr = reinterpret_cast<uint8_t*>(base_type::get_memory());
+        spinlock *pspinlock = reinterpret_cast<spinlock*>(ptr);
+        ptr += sizeof(spinlock);
+        volatile uint32_t *pcounter = reinterpret_cast<volatile uint32_t*>(ptr);
+        ptr += sizeof(uint32_t);
         m_plocker = new (ptr) locker_type();
         ptr += sizeof(locker_type);
         m_pbarrier = new (ptr) barrier_type();
-        m_owner = true;
         scoped_lock_type lock(*m_plocker);
         base_type::create_queue(cid, size);
+        ++(*pcounter);
+        pspinlock->unlock();
         return true;
     }
     return false;
@@ -641,12 +652,21 @@ bool base_safe_connector<Connector, Locker>::do_open()
     if (base_type::open_memory())
     {
         uint8_t *ptr = reinterpret_cast<uint8_t*>(base_type::get_memory());
-        m_plocker = reinterpret_cast<locker_type*>(ptr);
-        ptr += sizeof(locker_type);
-        m_pbarrier = reinterpret_cast<barrier_type*>(ptr);
-        scoped_lock_type lock(*m_plocker);
-        base_type::open_queue();
-        return true;
+        spinlock *pspinlock = reinterpret_cast<spinlock*>(ptr);
+        ptr += sizeof(spinlock);
+        scoped_lock<spinlock> guard(*pspinlock);
+        volatile uint32_t *pcounter = reinterpret_cast<volatile uint32_t*>(ptr);
+        if (*pcounter > 0)
+        {
+            ptr += sizeof(uint32_t);
+            m_plocker = reinterpret_cast<locker_type*>(ptr);
+            ptr += sizeof(locker_type);
+            m_pbarrier = reinterpret_cast<barrier_type*>(ptr);
+            scoped_lock_type lock(*m_plocker);
+            base_type::open_queue();
+            ++(*pcounter);
+            return true;
+        }
     }
     return false;
 }
@@ -660,7 +680,8 @@ template <typename Connector, typename Locker>
 void *base_safe_connector<Connector, Locker>::get_memory() const
 {
     return reinterpret_cast<uint8_t*>(base_type::get_memory()) +
-        sizeof(locker_type) + sizeof(barrier_type);
+        sizeof(locker_type) + sizeof(barrier_type) + sizeof(spinlock) + 
+        sizeof(uint32_t);
 }
 
 /**
@@ -673,7 +694,7 @@ template <typename Connector, typename Locker>
 size_t base_safe_connector<Connector, Locker>::memory_size(const size_t size) const
 {
     return base_type::memory_size(size) + sizeof(locker_type) +
-        sizeof(barrier_type);
+        sizeof(barrier_type) + sizeof(spinlock) + sizeof(uint32_t);
 }
 
 /**

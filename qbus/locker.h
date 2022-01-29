@@ -147,9 +147,8 @@ public:
     bool expect(const struct timespec& timeout) const; ///< expect the barrier to open
 private:
     typedef boost::interprocess::interprocess_mutex locker_type;
-    typedef boost::interprocess::interprocess_semaphore barrier_type;
     mutable locker_type m_locker;
-    mutable barrier_type m_barrier;
+    mutable boost::interprocess::interprocess_semaphore m_barrier;
     mutable volatile uint32_t m_counter1;
     mutable volatile uint32_t m_counter2;
 };
