@@ -154,6 +154,32 @@ private:
     mutable volatile uint32_t m_counter2;
 };
 
+/**
+ * The simple spinlock
+ */
+class spinlock
+{
+public:
+    enum lock_state
+    {
+        LS_LOCKED,
+        LS_UNLOCKED
+    };
+    void lock();
+    bool timed_lock(const struct timespec& timeout);
+    bool try_lock();
+    void unlock();
+protected:
+private:
+    spinlock(const spinlock& );
+    spinlock& operator=(const spinlock& );
+private:
+    volatile uint32_t m_lock;
+};
+
+#define QBUS_SPINLOCK_INIT_LOCKED = { qbus::spinlock::LS_UNLOCKED }
+#define QBUS_SPINLOCK_INIT_ULOCKED = { qbus::spinlock::LS_UNLOCKED }
+
 //==============================================================================
 //  scoped_lock
 //==============================================================================

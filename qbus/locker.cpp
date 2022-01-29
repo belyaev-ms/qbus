@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <boost/thread/thread_time.hpp>
+#include <boost/interprocess/detail/atomic.hpp>
 
 namespace qbus
 {
@@ -285,6 +286,66 @@ bool shared_barrier::expect(const struct timespec& timeout) const
     scoped_lock<locker_type> lock(m_locker);
     --m_counter2;
     return true;
+}
+
+//==============================================================================
+//  spinlock
+//==============================================================================
+
+/**
+ * Try to set the lock
+ * @return the result of the setting
+ */
+bool spinlock::try_lock()
+{
+    if (LS_LOCKED == boost::interprocess::ipcdetail::atomic_cas32(&m_lock,
+            LS_LOCKED, LS_UNLOCKED))
+    {
+        __sync_synchronize();
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Set the lock
+ */
+void spinlock::lock()
+{
+    unsigned int k = 0;
+    while (!try_lock())
+    {
+        boost::detail::yield(k++);
+    }
+}
+
+/**
+ * Try to set the lock until the time comes
+ * @param timeout the allowable timeout of the setting
+ * @return the result of the setting
+ */
+bool spinlock::timed_lock(const struct timespec& timeout)
+{
+    const struct timespec ts = get_monotonic_time() + timeout;
+    unsigned int k = 0;
+    while (get_monotonic_time() < ts)
+    {
+        if (try_lock())
+        {
+            return true;
+        }
+        boost::detail::yield(k++);
+    }
+    return false;
+}
+
+/**
+ * Remove the lock
+ */
+void spinlock::unlock()
+{
+    boost::interprocess::ipcdetail::atomic_write32(&m_lock, LS_UNLOCKED);
+    __sync_synchronize();
 }
 
 } //namespace qbus
