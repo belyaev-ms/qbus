@@ -17,9 +17,15 @@ namespace qbus
  * Constructor
  */
 shared_locker::shared_locker() :
+#if __cplusplus >= 201103L
+    m_lock{ BOOST_DETAIL_SPINLOCK_INIT },
+#endif
     m_scoped(0),
     m_sharable(0)
 {
+#if __cplusplus < 201103L
+    m_lock = BOOST_DETAIL_SPINLOCK_INIT;
+#endif
 }
 
 /**
