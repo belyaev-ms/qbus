@@ -29,8 +29,8 @@ base_bus::~base_bus()
 }
 
 /**
- * Get the name of the connector
- * @return the name of the connector
+ * Get the name of the bus
+ * @return the name of the bus
  */
 const std::string& base_bus::name() const
 {
@@ -362,7 +362,7 @@ bool base_bus::do_timed_pop(const struct timespec& timeout)
 }
 
 /**
- * Create the connector
+ * Create the bus
  * @param spec the specification of the bus
  * @return the result of the creating
  */
@@ -379,7 +379,7 @@ bool base_bus::do_create(const specification_type& spec)
 }
 
 /**
- * Open the connector
+ * Open the bus
  * @return the result of the opening
  */
 //virtual
@@ -405,7 +405,7 @@ bool base_bus::do_open()
 //==============================================================================
 /**
  * Constructor
- * @param name the name of the connector
+ * @param name the name of the bus
  */
 shared_bus::shared_bus(const std::string& name) :
     base_bus(name)
@@ -461,7 +461,7 @@ void *shared_bus::get_memory() const
 }
 
 /**
- * Create the connector
+ * Create the bus
  * @param spec the specification of the bus
  * @return the result of the creating
  */
@@ -484,7 +484,7 @@ bool shared_bus::do_create(const specification_type& spec)
 }
 
 /**
- * Open the connector
+ * Open the bus
  * @return the result of the opening
  */
 //virtual

@@ -42,7 +42,7 @@ class base_bus
 public:
     explicit base_bus(const std::string& name);
     virtual ~base_bus();
-    const std::string& name() const; ///< get the name of the connector
+    const std::string& name() const; ///< get the name of the bus
     bool create(const specification_type& spec); ///< create the bus
     bool open(); ///< open the bus
     bool push(const tag_type tag, const void *data, const size_t size); ///< push data to the bus
@@ -91,7 +91,6 @@ protected:
         specification_type spec;
         controlblock_type controlblock;
     };
-    // очень похоже на shared_connector хотелось бы выделить в отдельный класс и использовать множественное наследование
     virtual bool do_create(const specification_type& spec); ///< create the bus
     virtual bool do_open(); ///< open the bus
     virtual void *get_memory() const; ///< get the pointer to the shared memory
