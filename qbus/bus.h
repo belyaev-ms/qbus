@@ -193,6 +193,121 @@ pconnector_type simple_bus<Connector>::make_connector(const std::string& name) c
     return connector::make<connector_type>(name);
 }
 
+//==============================================================================
+//  output_bus
+//==============================================================================
+/**
+ * Constructor
+ * @param name the name of the bus
+ */
+template <typename Bus>
+output_bus<Bus>::output_bus(const std::string& name) :
+    Bus(name)
+{
+}
+
+/**
+ * Get the next message from the bus
+ * @return the message
+ */
+//virtual
+template <typename Bus>
+const pmessage_type output_bus<Bus>::do_get() const
+{
+    return pmessage_type();
+}
+
+/**
+ * Get the next message from the bus
+ * @param timeout the allowable timeout of the getting
+ * @return the message
+ */
+//virtual
+template <typename Bus>
+const pmessage_type output_bus<Bus>::do_timed_get(const struct timespec& timeout) const
+{
+    return pmessage_type();
+}
+
+/**
+ * Remove the next message from the bus
+ * @return the result of the removing
+ */
+//virtual
+template <typename Bus>
+bool output_bus<Bus>::do_pop()
+{
+    return false;
+}
+
+/**
+ * Remove the next message from the bus
+ * @param timeout the allowable timeout of the removing
+ * @return the result of the removing
+ */
+//virtual
+template <typename Bus>
+bool output_bus<Bus>::do_timed_pop(const struct timespec& timeout)
+{
+    return false;
+}
+
+//==============================================================================
+//  input_bus
+//==============================================================================
+/**
+ * Constructor
+ * @param name the name of the bus
+ */
+template <typename Bus>
+input_bus<Bus>::input_bus(const std::string& name) :
+    Bus(name)
+{
+}
+
+/**
+ * Push data to the bus
+ * @param tag the tag of the data
+ * @param data the data
+ * @param size the size of the data
+ * @return result of the pushing
+ */
+//virtual
+template <typename Bus>
+bool input_bus<Bus>::do_push(const tag_type tag, const void *data, const size_t size)
+{
+    return false;
+}
+
+/**
+ * Push data to the bus
+ * @param tag the tag of the data
+ * @param data the data
+ * @param size the size of the data
+ * @param timeout the allowable timeout of the pushing
+ * @return result of the pushing
+ */
+//virtual
+template <typename Bus>
+bool input_bus<Bus>::do_timed_push(const tag_type tag, const void *data, 
+    const size_t size, const struct timespec& timeout)
+{
+    return false;
+}
+
+//==============================================================================
+//  bidirectional_bus
+//==============================================================================
+/**
+ * Constructor
+ * @param name the name of the bus
+ */
+template <typename Bus>
+bidirectional_bus<Bus>::bidirectional_bus(const std::string& name) :
+    Bus(name)
+{
+}
+
 } //namespace bus
 
 typedef bus::simple_bus<single_input_connector_type> single_input_bus_type;
