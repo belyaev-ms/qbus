@@ -117,6 +117,44 @@ protected:
     virtual pconnector_type make_connector(const std::string& name) const; ///< make new connector
 };
 
+/**
+ * The output bus
+ */
+template <typename Bus>
+class output_bus : public Bus
+{
+public:
+    explicit output_bus(const std::string& name);
+protected:
+    virtual const pmessage_type do_get() const; ///< get the next message from the bus
+    virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the bus
+    virtual bool do_pop(); ///< remove the next message from the bus
+    virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the bus
+};
+
+/**
+ * The input bus
+ */
+template <typename Bus>
+class input_bus : public Bus
+{
+public:
+    explicit input_bus(const std::string& name);
+protected:
+    virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the bus
+    virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the bus
+};
+
+/**
+ * The input/output bus
+ */
+template <typename Bus>
+class bidirectional_bus : public Bus
+{
+public:
+    explicit bidirectional_bus(const std::string& name);
+};
+
 typedef boost::shared_ptr<base_bus> pbus_type;
 
 /**
