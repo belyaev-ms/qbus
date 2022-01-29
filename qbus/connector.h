@@ -80,7 +80,7 @@ public:
 protected:
     virtual bool do_create(const id_type cid, const size_t size); ///< create the connector
     virtual bool do_open(); ///< open the connector
-    virtual void *get_memory(); ///< get the pointer to the shared memory
+    virtual void *get_memory() const; ///< get the pointer to the shared memory
     virtual size_t memory_size(const size_t size) const = 0; ///< get the size of the shared memory
     bool create_memory(const size_t size); ///< create the shared memory
     bool open_memory(); ///< open the shared memory
@@ -128,7 +128,9 @@ public:
     explicit output_connector(const std::string& name);
 protected:
     virtual const pmessage_type do_get() const; ///< get the next message from the connector
+    virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the connector
     virtual bool do_pop(); ///< remove the next message from the connector
+    virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the connector
 };
 
 /**
@@ -141,6 +143,7 @@ public:
     explicit input_connector(const std::string& name);
 protected:
     virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the connector
+    virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the connector
 };
 
 /**
@@ -251,7 +254,7 @@ public:
 protected:
     virtual bool do_create(const id_type cid,const size_t size); ///< create the connector
     virtual bool do_open(); ///< open the connector
-    virtual void *get_memory(); ///< get the pointer to the shared memory
+    virtual void *get_memory() const; ///< get the pointer to the shared memory
     virtual size_t memory_size(const size_t size) const; ///< get the size of the shared memory
     virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the connector
     virtual const pmessage_type do_get() const; ///< get the next message from the connector
@@ -451,7 +454,6 @@ size_t simple_connector<Queue>::get_capacity() const
     return m_pqueue->capacity();
 }
 
-
 //==============================================================================
 //  output_connector
 //==============================================================================
@@ -477,12 +479,36 @@ const pmessage_type output_connector<Connector>::do_get() const
 }
 
 /**
+ * Get the next message from the connector
+ * @param timeout the allowable timeout of the getting
+ * @return the message
+ */
+//virtual
+template <typename Connector>
+const pmessage_type output_connector<Connector>::do_timed_get(const struct timespec& timeout) const
+{
+    return pmessage_type();
+}
+
+/**
  * Remove the next message from the connector
  * @return the result of the removing
  */
 //virtual
 template <typename Connector>
 bool output_connector<Connector>::do_pop()
+{
+    return false;
+}
+
+/**
+ * Remove the next message from the connector
+ * @param timeout the allowable timeout of the removing
+ * @return the result of the removing
+ */
+//virtual
+template <typename Connector>
+bool output_connector<Connector>::do_timed_pop(const struct timespec& timeout)
 {
     return false;
 }
@@ -510,6 +536,22 @@ input_connector<Connector>::input_connector(const std::string& name) :
 //virtual
 template <typename Connector>
 bool input_connector<Connector>::do_push(const tag_type tag, const void *data, const size_t size)
+{
+    return false;
+}
+
+/**
+ * Push data to the connector
+ * @param tag the tag of the data
+ * @param data the data
+ * @param size the size of the data
+ * @param timeout the allowable timeout of the pushing
+ * @return result of the pushing
+ */
+//virtual
+template <typename Connector>
+bool input_connector<Connector>::do_timed_push(const tag_type tag, const void *data, 
+    const size_t size, const struct timespec& timeout)
 {
     return false;
 }
@@ -615,7 +657,7 @@ bool base_safe_connector<Connector, Locker>::do_open()
  */
 //virtual
 template <typename Connector, typename Locker>
-void *base_safe_connector<Connector, Locker>::get_memory()
+void *base_safe_connector<Connector, Locker>::get_memory() const
 {
     return reinterpret_cast<uint8_t*>(base_type::get_memory()) +
         sizeof(locker_type) + sizeof(barrier_type);

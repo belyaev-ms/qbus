@@ -1,5 +1,4 @@
 #include "qbus/connector.h"
-#include <boost/smart_ptr/detail/spinlock.hpp>
 
 namespace qbus
 {
@@ -295,7 +294,7 @@ bool shared_connector::open_memory()
  * @return the pointer to the shared memory
  */
 //virtual
-void *shared_connector::get_memory()
+void *shared_connector::get_memory() const
 {
     return m_memory.get();
 }
