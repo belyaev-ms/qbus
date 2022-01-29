@@ -277,12 +277,23 @@ bool base_bus::do_push(const tag_type tag, const void *data, const size_t size)
 bool base_bus::do_timed_push(const tag_type tag, const void *data, const size_t size,
     const struct timespec& timeout)
 {
-    while (!front_connector()->push(tag, data, size, timeout))
+    bool result = front_connector()->push(tag, data, size, timeout);
+    if (!result)
     {
-        if (!add_connector())
+        const struct timespec limit = get_monotonic_time() + timeout;
+        do
         {
-            return false;
-        }
+            if (!add_connector())
+            {
+                return false;
+            }
+            const struct timespec now = get_monotonic_time();
+            if (now >= limit)
+            {
+                return false;
+            }
+            result = front_connector()->push(tag, data, size, limit - now);
+        } while (!result);
     }
     return true;
 }
@@ -315,13 +326,22 @@ const pmessage_type base_bus::do_get() const
 const pmessage_type base_bus::do_timed_get(const struct timespec& timeout) const
 {
     pmessage_type pmessage = back_connector()->get(timeout);
-    while (!pmessage)
+    if (!pmessage)
     {
-        if (!remove_connector())
+        const struct timespec limit = get_monotonic_time() + timeout;
+        do
         {
-            return NULL;
-        }
-        pmessage = back_connector()->get(timeout);
+            if (!remove_connector())
+            {
+                return pmessage_type();
+            }
+            const struct timespec now = get_monotonic_time();
+            if (now >= limit)
+            {
+                return pmessage_type();
+            }
+            pmessage = back_connector()->get(limit - now);
+        } while (!pmessage);
     }
     return pmessage;
 }
@@ -351,12 +371,23 @@ bool base_bus::do_pop()
 //virtual
 bool base_bus::do_timed_pop(const struct timespec& timeout)
 {
-    while (!back_connector()->pop(timeout))
+    bool result = back_connector()->pop(timeout);
+    if (!result)
     {
-        if (!remove_connector())
+        const struct timespec limit = get_monotonic_time() + timeout;
+        do
         {
-            return false;
-        }
+            if (!remove_connector())
+            {
+                return false;
+            }
+            const struct timespec now = get_monotonic_time();
+            if (now >= limit)
+            {
+                return false;
+            }
+            result = back_connector()->pop(limit - now);
+        } while (!result);
     }
     return true;
 }
