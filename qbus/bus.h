@@ -30,7 +30,7 @@ struct specification_type
 
 struct controlblock_type
 {
-    id_type front_connector_id; ///< the connector for pushing data
+    uint32_t epoch; ///< the epoch of the control block
     id_type input_id; ///< the connector identifier for getting data
     id_type output_id; ///< the connector identifier for pushing data
 };
@@ -65,11 +65,11 @@ protected:
     virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the bus
     virtual const specification_type& get_spec() const = 0; ///< get the specification of the bus
     virtual controlblock_type& get_controlblock() const = 0; ///< get the control block of the bus
+    bool add_connector() const; ///< add new connector to the bus
+    bool remove_connector() const; ///< remove the back connector from the bus
 private:
     virtual pconnector_type make_connector(const std::string& name) const = 0; ///< make new connector
     pconnector_type make_connector(const id_type id) const; ///< make new connector
-    bool add_connector() const; ///< add new connector to the bus
-    bool remove_connector() const; ///< remove the back connector from the bus
     pconnector_type output_connector() const; ///< get the output connector
     pconnector_type input_connector() const; ///< get the input connector
 private:
@@ -96,13 +96,33 @@ protected:
     virtual bool do_open(); ///< open the bus
     virtual void *get_memory() const; ///< get the pointer to the shared memory
     virtual size_t memory_size() const; ///< get the size of the shared memory
+    virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the bus
+    virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the bus
+    virtual const pmessage_type do_get() const; ///< get the next message from the bus
+    virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the bus
+    virtual bool do_pop(); ///< remove the next message from the bus
+    virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the bus
     bool create_memory(); ///< create the shared memory
     bool open_memory(); ///< open the shared memory
     void free_memory(); ///< free the shared memory
     virtual const specification_type& get_spec() const; ///< get the specification of the bus
     virtual controlblock_type& get_controlblock() const; ///< get the control block of the bus
 private:
-    pshared_memory_type m_pmemory;    
+    enum update_status
+    {
+        US_NONE     = 0x00,
+        US_INPUT    = 0x01,
+        US_OUTPUT   = 0x02,
+        US_BOTH     = 0x03
+    };
+    bool is_updated() const; ///< check if the bus is updated
+    update_status update_connectors() const; ///< update the connectors
+    bool update_input_connector() const; ///< update the input connector
+    bool update_output_connector() const; ///< update the output connector
+private:
+    pshared_memory_type m_pmemory;
+    mutable controlblock_type m_controlblock; ///< the local copy of the control block
+    mutable update_status m_status;
 };
 
 /**
@@ -154,6 +174,24 @@ class bidirectional_bus : public Bus
 {
 public:
     explicit bidirectional_bus(const std::string& name);
+};
+
+/**
+ * The base safe bus for inter process communications
+ */
+template <typename Bus, typename Locker>
+class base_safe_bus : public Bus
+{
+protected:
+    typedef Bus base_type;
+public:
+    explicit base_safe_bus(const std::string& name);
+    virtual ~base_safe_bus();
+protected:
+    virtual bool do_create(const specification_type& spec); ///< create the bus
+    virtual bool do_open(); ///< open the connector
+    virtual void *get_memory() const; ///< get the pointer to the shared memory
+    virtual size_t memory_size() const; ///< get the size of the shared memory
 };
 
 typedef boost::shared_ptr<base_bus> pbus_type;
@@ -307,6 +345,76 @@ template <typename Bus>
 bidirectional_bus<Bus>::bidirectional_bus(const std::string& name) :
     Bus(name)
 {
+}
+
+//==============================================================================
+//  base_safe_bus
+//==============================================================================
+/**
+ * Constructor
+ * @param name the name of the bus
+ */
+template <typename Bus, typename Locker>
+base_safe_bus<Bus, Locker>::base_safe_bus(const std::string& name) :
+    base_type(name)
+{
+}
+
+/**
+ * Destructor
+ */
+// virtual
+template <typename Bus, typename Locker>
+base_safe_bus<Bus, Locker>::~base_safe_bus()
+{
+    if (base_type::enabled())
+    {
+    }
+}
+
+/**
+ * Create the bus
+ * @param spec the specification of the bus
+ * @return the result of the creating
+ */
+//virtual
+template <typename Bus, typename Locker>
+bool base_safe_bus<Bus, Locker>::do_create(const specification_type& spec)
+{
+    return false;
+}
+
+/**
+ * Open the bus
+ * @return the result of the opening
+ */
+//virtual
+template <typename Bus, typename Locker>
+bool base_safe_bus<Bus, Locker>::do_open()
+{
+    return false;
+}
+
+/**
+ * Get the pointer to the shared memory
+ * @return the pointer to the shared memory
+ */
+//virtual
+template <typename Bus, typename Locker>
+void *base_safe_bus<Bus, Locker>::get_memory() const
+{
+    return reinterpret_cast<uint8_t*>(base_type::get_memory());
+}
+
+/**
+ * Get the size of the shared memory
+ * @return the size of the shared memory
+ */
+//virtual
+template <typename Bus, typename Locker>
+size_t base_safe_bus<Bus, Locker>::memory_size() const
+{
+    return base_type::memory_size();
 }
 
 } //namespace bus

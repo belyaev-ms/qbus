@@ -1,5 +1,7 @@
 #include "qbus/bus.h"
+#include "qbus/common.h"
 #include <boost/lexical_cast.hpp>
+#include <boost/interprocess/detail/atomic.hpp>
 
 namespace qbus
 {
@@ -209,7 +211,7 @@ bool base_bus::push(const tag_type tag, const void *data, const size_t size,
 {
     if (m_opened)
     {
-        bool result = do_push(tag, data, size, timeout);
+        bool result = do_timed_push(tag, data, size, timeout);
         if (!result)
         {
             const struct timespec limit = get_monotonic_time() + timeout;
@@ -224,7 +226,7 @@ bool base_bus::push(const tag_type tag, const void *data, const size_t size,
                 {
                     return false;
                 }
-                result = do_push(tag, data, size, limit - now);
+                result = do_timed_push(tag, data, size, limit - now);
             } while (!result);
         }
         return true;
@@ -263,7 +265,7 @@ const pmessage_type base_bus::get(const struct timespec& timeout) const
 {
     if (m_opened)
     {
-        pmessage_type pmessage = do_get(timeout);
+        pmessage_type pmessage = do_timed_get(timeout);
         if (!pmessage)
         {
             const struct timespec limit = get_monotonic_time() + timeout;
@@ -278,7 +280,7 @@ const pmessage_type base_bus::get(const struct timespec& timeout) const
                 {
                     return pmessage_type();
                 }
-                pmessage = do_get(limit - now);
+                pmessage = do_timed_get(limit - now);
             } while (!pmessage);
         }
         return pmessage;
@@ -315,7 +317,7 @@ bool base_bus::pop(const struct timespec& timeout)
 {
     if (m_opened)
     {
-        bool result = do_pop(timeout);
+        bool result = do_timed_pop(timeout);
         if (!result)
         {
             const struct timespec limit = get_monotonic_time() + timeout;
@@ -330,7 +332,7 @@ bool base_bus::pop(const struct timespec& timeout)
                 {
                     return false;
                 }
-                result = do_pop(limit - now);
+                result = do_timed_pop(limit - now);
             } while (!result);
         }
         return true;
@@ -455,7 +457,8 @@ bool base_bus::do_open()
  * @param name the name of the bus
  */
 shared_bus::shared_bus(const std::string& name) :
-    base_bus(name)
+    base_bus(name),
+    m_status(US_NONE)
 {
 }
 
@@ -519,9 +522,10 @@ bool shared_bus::do_create(const specification_type& spec)
     {
         bus_body *pbody = reinterpret_cast<bus_body*>(get_memory());
         pbody->spec = spec;
-        pbody->controlblock.front_connector_id = 0;
+        pbody->controlblock.epoch = 0;
         pbody->controlblock.output_id = 0;
         pbody->controlblock.input_id = 0;
+        m_controlblock = pbody->controlblock;
         if (base_type::do_create(spec))
         {
             return true;
@@ -542,11 +546,93 @@ bool shared_bus::do_open()
     {
         if (base_type::do_open())
         {
+            m_controlblock = get_controlblock();
             return true;
         }
         free_memory();
     }
     return false;
+}
+
+/**
+ * Push data to the bus
+ * @param tag the tag of the data
+ * @param data the data
+ * @param size the size of the data
+ * @return result of the pushing
+ */
+//virtual
+bool shared_bus::do_push(const tag_type tag, const void *data, const size_t size)
+{
+    if (update_output_connector())
+    {
+        do
+        {
+            if (!base_type::do_push(tag, data, size))
+            {
+                return false;
+            }
+        } while (!update_output_connector());
+        return true;
+    }
+    return base_type::do_push(tag, data, size);
+}
+
+/**
+ * Push data to the bus
+ * @param tag the tag of the data
+ * @param data the data
+ * @param size the size of the data
+ * @param timeout the allowable timeout of the pushing
+ * @return result of the pushing
+ */
+//virtual
+bool shared_bus::do_timed_push(const tag_type tag, const void *data, const size_t size,
+    const struct timespec& timeout)
+{
+    return base_type::do_timed_push(tag, data, size, timeout);
+}
+
+/**
+ * Get the next message from the bus
+ * @return the message
+ */
+//virtual
+const pmessage_type shared_bus::do_get() const
+{
+    return base_type::do_get();
+}
+
+/**
+ * Get the next message from the bus
+ * @param timeout the allowable timeout of the getting
+ * @return the message
+ */
+//virtual
+const pmessage_type shared_bus::do_timed_get(const struct timespec& timeout) const
+{
+    return base_type::do_timed_get(timeout);
+}
+
+/**
+ * Remove the next message from the bus
+ * @return the result of the removing
+ */
+//virtual
+bool shared_bus::do_pop()
+{
+    return base_type::do_pop();
+}
+
+/**
+ * Remove the next message from the bus
+ * @param timeout the allowable timeout of the removing
+ * @return the result of the removing
+ */
+//virtual
+bool shared_bus::do_timed_pop(const struct timespec& timeout)
+{
+    return base_type::do_timed_pop(timeout);
 }
 
 /**
@@ -566,7 +652,75 @@ const specification_type& shared_bus::get_spec() const
 //virtual
 controlblock_type& shared_bus::get_controlblock() const
 {
-    return reinterpret_cast<bus_body*>(get_memory())->controlblock;
+    return m_status != US_NONE ? m_controlblock :
+        reinterpret_cast<bus_body*>(get_memory())->controlblock;
+}
+
+/**
+ * Check if the bus is updated
+ * @return result of this checking
+ */
+bool shared_bus::is_updated() const
+{
+    controlblock_type& cb = get_controlblock();
+    const uint32_t epoch = boost::interprocess::ipcdetail::atomic_read32(&cb.epoch);
+    if (epoch != m_controlblock.epoch)
+    {
+        m_controlblock.epoch = epoch;
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Update the connectors
+ * @return status of update
+ */
+shared_bus::update_status shared_bus::update_connectors() const
+{
+    if (!is_updated())
+    {
+        rollback<update_status> st(m_status);
+        controlblock_type& cb = get_controlblock();
+        const id_type output_id = boost::interprocess::ipcdetail::atomic_read32(&cb.output_id);
+        if (output_id != m_controlblock.output_id)
+        {
+            while (m_controlblock.output_id != output_id)
+            {
+                add_connector();
+            }
+            m_status = US_OUTPUT;
+        }
+        const id_type input_id = boost::interprocess::ipcdetail::atomic_read32(&cb.input_id);
+        if (input_id != m_controlblock.output_id)
+        {
+            while (m_controlblock.output_id != output_id)
+            {
+                remove_connector();
+            }
+            m_status = US_OUTPUT == m_status ? US_BOTH : US_INPUT;
+        }
+        return m_status;
+    }
+    return US_NONE;
+}
+
+/**
+ * Update the input connector
+ * @return false if the bus has the latest input connectors
+ */
+bool shared_bus::update_input_connector() const
+{
+    return update_connectors() & US_INPUT;
+}
+
+/**
+ * Update the output connector
+ * @return false if the bus has the latest output connectors
+ */
+bool shared_bus::update_output_connector() const
+{
+    return update_connectors() & US_OUTPUT;
 }
 
 } //namespace bus

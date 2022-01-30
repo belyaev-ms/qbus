@@ -1,4 +1,5 @@
 #include "qbus/queue.h"
+#include "qbus/common.h"
 #include <stdlib.h>
 #include <string.h>
 #include <boost/make_shared.hpp>
@@ -535,23 +536,6 @@ size_t base_shared_queue::count() const
 {
     return counter() - m_counter;
 }
-
-template <typename T>
-class rollback
-{
-public:
-    rollback(T& value) : 
-        m_value(value),
-        m_store(value)
-    {}
-    ~rollback()
-    {
-        m_value = m_store;
-    }
-private:
-    T& m_value;
-    T m_store;
-};
 
 /**
  * Collect garbage
