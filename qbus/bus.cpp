@@ -182,7 +182,18 @@ const specification_type& base_bus::spec() const
  */
 bool base_bus::push(const tag_type tag, const void *data, const size_t size)
 {
-    return m_opened && do_push(tag, data, size);
+    if (m_opened)
+    {
+        while (!do_push(tag, data, size))
+        {
+            if (!add_connector())
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -196,7 +207,29 @@ bool base_bus::push(const tag_type tag, const void *data, const size_t size)
 bool base_bus::push(const tag_type tag, const void *data, const size_t size,
     const struct timespec& timeout)
 {
-    return m_opened && do_timed_push(tag, data, size, timeout);
+    if (m_opened)
+    {
+        bool result = do_push(tag, data, size, timeout);
+        if (!result)
+        {
+            const struct timespec limit = get_monotonic_time() + timeout;
+            do
+            {
+                if (!add_connector())
+                {
+                    return false;
+                }
+                const struct timespec now = get_monotonic_time();
+                if (now >= limit)
+                {
+                    return false;
+                }
+                result = do_push(tag, data, size, limit - now);
+            } while (!result);
+        }
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -207,9 +240,18 @@ const pmessage_type base_bus::get() const
 {
     if (m_opened)
     {
-        return do_get();
+        pmessage_type pmessage = do_get();
+        while (!pmessage)
+        {
+            if (!remove_connector())
+            {
+                return pmessage_type();
+            }
+            pmessage = do_get();
+        }
+        return pmessage;
     }
-    return NULL;
+    return pmessage_type();
 }
 
 /**
@@ -221,9 +263,27 @@ const pmessage_type base_bus::get(const struct timespec& timeout) const
 {
     if (m_opened)
     {
-        return do_timed_get(timeout);
+        pmessage_type pmessage = do_get(timeout);
+        if (!pmessage)
+        {
+            const struct timespec limit = get_monotonic_time() + timeout;
+            do
+            {
+                if (!remove_connector())
+                {
+                    return pmessage_type();
+                }
+                const struct timespec now = get_monotonic_time();
+                if (now >= limit)
+                {
+                    return pmessage_type();
+                }
+                pmessage = do_get(limit - now);
+            } while (!pmessage);
+        }
+        return pmessage;
     }
-    return NULL;
+    return pmessage_type();;
 }
 
 /**
@@ -232,7 +292,18 @@ const pmessage_type base_bus::get(const struct timespec& timeout) const
  */
 bool base_bus::pop()
 {
-    return m_opened && do_pop();
+    if (m_opened)
+    {
+        while (!do_pop())
+        {
+            if (!remove_connector())
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -242,7 +313,29 @@ bool base_bus::pop()
  */
 bool base_bus::pop(const struct timespec& timeout)
 {
-    return m_opened && do_timed_pop(timeout);
+    if (m_opened)
+    {
+        bool result = do_pop(timeout);
+        if (!result)
+        {
+            const struct timespec limit = get_monotonic_time() + timeout;
+            do
+            {
+                if (!remove_connector())
+                {
+                    return false;
+                }
+                const struct timespec now = get_monotonic_time();
+                if (now >= limit)
+                {
+                    return false;
+                }
+                result = do_pop(limit - now);
+            } while (!result);
+        }
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -255,14 +348,7 @@ bool base_bus::pop(const struct timespec& timeout)
 //virtual
 bool base_bus::do_push(const tag_type tag, const void *data, const size_t size)
 {
-    while (!front_connector()->push(tag, data, size))
-    {
-        if (!add_connector())
-        {
-            return false;
-        }
-    }
-    return true;
+    return output_connector()->push(tag, data, size);
 }
 
 /**
@@ -277,25 +363,7 @@ bool base_bus::do_push(const tag_type tag, const void *data, const size_t size)
 bool base_bus::do_timed_push(const tag_type tag, const void *data, const size_t size,
     const struct timespec& timeout)
 {
-    bool result = front_connector()->push(tag, data, size, timeout);
-    if (!result)
-    {
-        const struct timespec limit = get_monotonic_time() + timeout;
-        do
-        {
-            if (!add_connector())
-            {
-                return false;
-            }
-            const struct timespec now = get_monotonic_time();
-            if (now >= limit)
-            {
-                return false;
-            }
-            result = front_connector()->push(tag, data, size, limit - now);
-        } while (!result);
-    }
-    return true;
+    return output_connector()->push(tag, data, size, timeout);
 }
 
 /**
@@ -305,16 +373,7 @@ bool base_bus::do_timed_push(const tag_type tag, const void *data, const size_t 
 //virtual
 const pmessage_type base_bus::do_get() const
 {
-    pmessage_type pmessage = back_connector()->get();
-    while (!pmessage)
-    {
-        if (!remove_connector())
-        {
-            return pmessage_type();
-        }
-        pmessage = back_connector()->get();
-    }
-    return pmessage;
+    return input_connector()->get();
 }
 
 /**
@@ -325,25 +384,7 @@ const pmessage_type base_bus::do_get() const
 //virtual
 const pmessage_type base_bus::do_timed_get(const struct timespec& timeout) const
 {
-    pmessage_type pmessage = back_connector()->get(timeout);
-    if (!pmessage)
-    {
-        const struct timespec limit = get_monotonic_time() + timeout;
-        do
-        {
-            if (!remove_connector())
-            {
-                return pmessage_type();
-            }
-            const struct timespec now = get_monotonic_time();
-            if (now >= limit)
-            {
-                return pmessage_type();
-            }
-            pmessage = back_connector()->get(limit - now);
-        } while (!pmessage);
-    }
-    return pmessage;
+    return input_connector()->get(timeout);
 }
 
 /**
@@ -353,14 +394,7 @@ const pmessage_type base_bus::do_timed_get(const struct timespec& timeout) const
 //virtual
 bool base_bus::do_pop()
 {
-    while (!back_connector()->pop())
-    {
-        if (!remove_connector())
-        {
-            return false;
-        }
-    }
-    return true;
+    return input_connector()->pop();
 }
 
 /**
@@ -371,25 +405,7 @@ bool base_bus::do_pop()
 //virtual
 bool base_bus::do_timed_pop(const struct timespec& timeout)
 {
-    bool result = back_connector()->pop(timeout);
-    if (!result)
-    {
-        const struct timespec limit = get_monotonic_time() + timeout;
-        do
-        {
-            if (!remove_connector())
-            {
-                return false;
-            }
-            const struct timespec now = get_monotonic_time();
-            if (now >= limit)
-            {
-                return false;
-            }
-            result = back_connector()->pop(limit - now);
-        } while (!result);
-    }
-    return true;
+    return input_connector()->pop(timeout);
 }
 
 /**
