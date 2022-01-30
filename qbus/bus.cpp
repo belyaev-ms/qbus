@@ -90,7 +90,7 @@ pconnector_type base_bus::make_connector(const id_type id) const
     const specification_type sp = spec();
     if (m_pconnectors.empty() || sp.capacity_factor > 0)
     {
-        size_type old_capacity = !m_pconnectors.empty() ? front_connector()->capacity() : 0;
+        size_type old_capacity = !m_pconnectors.empty() ? output_connector()->capacity() : 0;
         size_type new_capacity = std::max(sp.min_capacity, old_capacity * (sp.capacity_factor + 100) / 100);
         new_capacity = std::min(new_capacity, sp.max_capacity);
         if (new_capacity > old_capacity && pconnector->create(sp.id, new_capacity))
@@ -108,13 +108,13 @@ pconnector_type base_bus::make_connector(const id_type id) const
 bool base_bus::add_connector() const
 {
     controlblock_type& cb = get_controlblock();
-    if (cb.front_connector_id + 1 != cb.back_connector_id)
+    if (cb.output_id + 1 != cb.input_id)
     {
-        pconnector_type pconnector = make_connector(cb.front_connector_id + 1);
+        pconnector_type pconnector = make_connector(cb.output_id + 1);
         if (pconnector)
         {
             m_pconnectors.push_front(pconnector);
-            ++cb.front_connector_id;
+            ++cb.output_id;
             return true;
         }
     }
@@ -128,13 +128,13 @@ bool base_bus::add_connector() const
 bool base_bus::remove_connector() const
 {
     controlblock_type& cb = get_controlblock();
-    if (cb.back_connector_id != cb.front_connector_id)
+    if (cb.input_id != cb.output_id)
     {
         m_pconnectors.pop_back();
-        ++cb.back_connector_id;
+        ++cb.input_id;
         if (m_pconnectors.empty())
         {
-            pconnector_type pconnector = make_connector(cb.back_connector_id);
+            pconnector_type pconnector = make_connector(cb.input_id);
             if (!pconnector)
             {
                 return false;
@@ -147,19 +147,19 @@ bool base_bus::remove_connector() const
 }
 
 /**
- * Get the front connector
- * @return the front connector
+ * Get the output connector
+ * @return the output connector
  */
-pconnector_type base_bus::front_connector() const
+pconnector_type base_bus::output_connector() const
 {
     return m_pconnectors.front();
 }
 
 /**
- * Get the back connector
- * @return the back connector
+ * Get the input connector
+ * @return the input connector
  */
-pconnector_type base_bus::back_connector() const
+pconnector_type base_bus::input_connector() const
 {
     return m_pconnectors.back();
 }
@@ -417,7 +417,7 @@ bool base_bus::do_create(const specification_type& spec)
 bool base_bus::do_open()
 {
     const controlblock_type& cb = get_controlblock();
-    id_type id = cb.back_connector_id;
+    id_type id = cb.input_id;
     do
     {
         pconnector_type pconnector = make_connector(id);
@@ -427,7 +427,7 @@ bool base_bus::do_open()
             return false;
         }
         m_pconnectors.push_front(pconnector);
-    } while (id++ != cb.front_connector_id);
+    } while (id++ != cb.output_id);
     return true;
 }
 
@@ -504,7 +504,8 @@ bool shared_bus::do_create(const specification_type& spec)
         bus_body *pbody = reinterpret_cast<bus_body*>(get_memory());
         pbody->spec = spec;
         pbody->controlblock.front_connector_id = 0;
-        pbody->controlblock.back_connector_id = 0;
+        pbody->controlblock.output_id = 0;
+        pbody->controlblock.input_id = 0;
         if (base_type::do_create(spec))
         {
             return true;

@@ -31,7 +31,8 @@ struct specification_type
 struct controlblock_type
 {
     id_type front_connector_id; ///< the connector for pushing data
-    id_type back_connector_id; ///< the connector for getting data
+    id_type input_id; ///< the connector identifier for getting data
+    id_type output_id; ///< the connector identifier for pushing data
 };
 
 /**
@@ -69,8 +70,8 @@ private:
     pconnector_type make_connector(const id_type id) const; ///< make new connector
     bool add_connector() const; ///< add new connector to the bus
     bool remove_connector() const; ///< remove the back connector from the bus
-    pconnector_type front_connector() const; ///< get the front connector
-    pconnector_type back_connector() const; ///< get the back connector
+    pconnector_type output_connector() const; ///< get the output connector
+    pconnector_type input_connector() const; ///< get the input connector
 private:
     const std::string m_name;
     mutable std::list<pconnector_type> m_pconnectors;
