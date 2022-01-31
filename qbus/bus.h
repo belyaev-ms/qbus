@@ -2,6 +2,7 @@
 #define BUS_H
 
 #include "qbus/connector.h"
+#include "qbus/locker.h"
 #include <string>
 #include <list>
 #include <boost/shared_ptr.hpp>
@@ -57,6 +58,7 @@ public:
 protected:
     virtual bool do_create(const specification_type& spec); ///< create the bus
     virtual bool do_open(); ///< open the bus
+    void close_bus(); ///< close the bus
     virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the bus
     virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the bus
     virtual const pmessage_type do_get() const; ///< get the next message from the bus
@@ -65,8 +67,8 @@ protected:
     virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the bus
     virtual const specification_type& get_spec() const = 0; ///< get the specification of the bus
     virtual controlblock_type& get_controlblock() const = 0; ///< get the control block of the bus
-    bool add_connector() const; ///< add new connector to the bus
-    bool remove_connector() const; ///< remove the back connector from the bus
+    virtual bool add_connector() const; ///< add new connector to the bus
+    virtual bool remove_connector() const; ///< remove the back connector from the bus
 private:
     virtual pconnector_type make_connector(const std::string& name) const = 0; ///< make new connector
     pconnector_type make_connector(const id_type id) const; ///< make new connector
@@ -94,6 +96,8 @@ protected:
     };
     virtual bool do_create(const specification_type& spec); ///< create the bus
     virtual bool do_open(); ///< open the bus
+    bool create_body(const specification_type& spec); ///< create the body of the bus
+    bool attach_body(); ///< attach the body of the bus
     virtual void *get_memory() const; ///< get the pointer to the shared memory
     virtual size_t memory_size() const; ///< get the size of the shared memory
     virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the bus
@@ -182,7 +186,6 @@ public:
 template <typename Bus, typename Locker>
 class base_safe_bus : public Bus
 {
-protected:
     typedef Bus base_type;
 public:
     explicit base_safe_bus(const std::string& name);
@@ -192,6 +195,12 @@ protected:
     virtual bool do_open(); ///< open the connector
     virtual void *get_memory() const; ///< get the pointer to the shared memory
     virtual size_t memory_size() const; ///< get the size of the shared memory
+    virtual bool add_connector() const; ///< add new connector to the bus
+    virtual bool remove_connector() const; ///< remove the back connector from the bus
+private:
+    typedef Locker locker_type;
+    typedef scoped_lock<locker_type> scoped_lock_type;
+    mutable locker_type *m_plocker;
 };
 
 typedef boost::shared_ptr<base_bus> pbus_type;
@@ -369,6 +378,19 @@ base_safe_bus<Bus, Locker>::~base_safe_bus()
 {
     if (base_type::enabled())
     {
+        uint8_t *ptr = reinterpret_cast<uint8_t*>(base_type::get_memory());
+        spinlock *pspinlock = reinterpret_cast<spinlock*>(ptr);
+        ptr += sizeof(spinlock);
+        scoped_lock<spinlock> guard(*pspinlock);
+        volatile uint32_t *pcounter = reinterpret_cast<volatile uint32_t*>(ptr);
+        {
+            scoped_lock_type lock(*m_plocker);
+            base_type::close();
+        }
+        if (--(*pcounter) == 0)
+        {
+            m_plocker->~locker_type();
+        }
     }
 }
 
@@ -381,6 +403,24 @@ base_safe_bus<Bus, Locker>::~base_safe_bus()
 template <typename Bus, typename Locker>
 bool base_safe_bus<Bus, Locker>::do_create(const specification_type& spec)
 {
+    if (base_type::create_memory())
+    {
+        /* shared memory object are automatically initialized and the spinlock
+         * is locked by default */
+        uint8_t *ptr = reinterpret_cast<uint8_t*>(base_type::get_memory());
+        spinlock *pspinlock = reinterpret_cast<spinlock*>(ptr);
+        ptr += sizeof(spinlock);
+        volatile uint32_t *pcounter = reinterpret_cast<volatile uint32_t*>(ptr);
+        ptr += sizeof(uint32_t);
+        m_plocker = new (ptr) locker_type();
+        scoped_lock_type lock(*m_plocker);
+        if (base_type::create_body(spec))
+        {
+            ++(*pcounter);
+            pspinlock->unlock();
+            return true;
+        }
+    }
     return false;
 }
 
@@ -392,6 +432,25 @@ bool base_safe_bus<Bus, Locker>::do_create(const specification_type& spec)
 template <typename Bus, typename Locker>
 bool base_safe_bus<Bus, Locker>::do_open()
 {
+    if (base_type::open_memory())
+    {
+        uint8_t *ptr = reinterpret_cast<uint8_t*>(base_type::get_memory());
+        spinlock *pspinlock = reinterpret_cast<spinlock*>(ptr);
+        ptr += sizeof(spinlock);
+        scoped_lock<spinlock> guard(*pspinlock);
+        volatile uint32_t *pcounter = reinterpret_cast<volatile uint32_t*>(ptr);
+        if (*pcounter > 0)
+        {
+            ptr += sizeof(uint32_t);
+            m_plocker = reinterpret_cast<locker_type*>(ptr);
+            scoped_lock_type lock(*m_plocker);
+            if (base_type::attach_body())
+            {
+                ++(*pcounter);
+                return true;
+            }
+        }
+    }
     return false;
 }
 
@@ -403,7 +462,8 @@ bool base_safe_bus<Bus, Locker>::do_open()
 template <typename Bus, typename Locker>
 void *base_safe_bus<Bus, Locker>::get_memory() const
 {
-    return reinterpret_cast<uint8_t*>(base_type::get_memory());
+    return reinterpret_cast<uint8_t*>(base_type::get_memory()) + 
+        sizeof(locker_type) + sizeof(uint32_t);
 }
 
 /**
@@ -414,7 +474,31 @@ void *base_safe_bus<Bus, Locker>::get_memory() const
 template <typename Bus, typename Locker>
 size_t base_safe_bus<Bus, Locker>::memory_size() const
 {
-    return base_type::memory_size();
+    return base_type::memory_size() + sizeof(locker_type) + sizeof(uint32_t);
+}
+
+/**
+ * Add new connector to the bus
+ * @return result of the adding
+ */
+//virtual
+template <typename Bus, typename Locker>
+bool base_safe_bus<Bus, Locker>::add_connector() const
+{
+    scoped_lock_type lock(*m_plocker);
+    return base_type::add_connector();
+}
+
+/**
+ * Remove the back connector from the bus
+ * @return result of the removing
+ */
+//virtual
+template <typename Bus, typename Locker>
+bool base_safe_bus<Bus, Locker>::remove_connector() const
+{
+    scoped_lock_type lock(*m_plocker);
+    return base_type::remove_connector();
 }
 
 } //namespace bus

@@ -28,6 +28,7 @@ base_bus::base_bus(const std::string& name) :
 //virtual
 base_bus::~base_bus()
 {
+    close_bus();
 }
 
 /**
@@ -107,6 +108,7 @@ pconnector_type base_bus::make_connector(const id_type id) const
  * Add new connector to the bus
  * @return result of the adding
  */
+//virtual
 bool base_bus::add_connector() const
 {
     controlblock_type& cb = get_controlblock();
@@ -127,6 +129,7 @@ bool base_bus::add_connector() const
  * Remove the back connector from the bus
  * @return result of the removing
  */
+//virtual
 bool base_bus::remove_connector() const
 {
     controlblock_type& cb = get_controlblock();
@@ -449,6 +452,14 @@ bool base_bus::do_open()
     return true;
 }
 
+/**
+ * Close the bus
+ */
+void base_bus::close_bus()
+{
+    m_pconnectors.clear();
+}
+
 //==============================================================================
 //  shared_bus
 //==============================================================================
@@ -518,20 +529,27 @@ void *shared_bus::get_memory() const
 //virtual
 bool shared_bus::do_create(const specification_type& spec)
 {
-    if (create_memory())
+    return create_memory() && create_body(spec);
+}
+
+/**
+ * Create the body of the bus
+ * @param spec the specification of the bus
+ * @return the result of the creating
+ */
+bool shared_bus::create_body(const specification_type& spec)
+{
+    bus_body *pbody = reinterpret_cast<bus_body*>(get_memory());
+    pbody->spec = spec;
+    pbody->controlblock.epoch = 0;
+    pbody->controlblock.output_id = 0;
+    pbody->controlblock.input_id = 0;
+    m_controlblock = pbody->controlblock;
+    if (base_type::do_create(spec))
     {
-        bus_body *pbody = reinterpret_cast<bus_body*>(get_memory());
-        pbody->spec = spec;
-        pbody->controlblock.epoch = 0;
-        pbody->controlblock.output_id = 0;
-        pbody->controlblock.input_id = 0;
-        m_controlblock = pbody->controlblock;
-        if (base_type::do_create(spec))
-        {
-            return true;
-        }
-        free_memory();
+        return true;
     }
+    free_memory();
     return false;
 }
 
@@ -542,15 +560,21 @@ bool shared_bus::do_create(const specification_type& spec)
 //virtual
 bool shared_bus::do_open()
 {
-    if (open_memory())
+    return open_memory() && attach_body();
+}
+
+/**
+ * Attach the body of the bus
+ * @return the result of the attaching
+ */
+bool shared_bus::attach_body()
+{
+    if (base_type::do_open())
     {
-        if (base_type::do_open())
-        {
-            m_controlblock = get_controlblock();
-            return true;
-        }
-        free_memory();
+        m_controlblock = get_controlblock();
+        return true;
     }
+    free_memory();
     return false;
 }
 
