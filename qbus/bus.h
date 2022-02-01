@@ -58,7 +58,7 @@ public:
 protected:
     virtual bool do_create(const specification_type& spec); ///< create the bus
     virtual bool do_open(); ///< open the bus
-    void close_bus(); ///< close the bus
+    void close(); ///< close the bus
     virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the bus
     virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the bus
     virtual const pmessage_type do_get() const; ///< get the next message from the bus
@@ -180,10 +180,17 @@ public:
     explicit bidirectional_bus(const std::string& name);
 };
 
+typedef bus::simple_bus<single_input_connector_type> single_input_bus_type;
+typedef bus::simple_bus<single_output_connector_type> single_output_bus_type;
+typedef bus::simple_bus<single_bidirectional_connector_type> single_bidirectional_bus_type;
+typedef bus::simple_bus<multi_input_connector_type> multi_input_bus_type;
+typedef bus::simple_bus<multi_output_connector_type> multi_output_bus_type;
+typedef bus::simple_bus<multi_bidirectional_connector_type> multi_bidirectional_bus_type;
+
 /**
  * The base safe bus for inter process communications
  */
-template <typename Bus, typename Locker>
+template <typename Bus, typename Locker = boost::interprocess::interprocess_mutex>
 class base_safe_bus : public Bus
 {
     typedef Bus base_type;
@@ -503,12 +510,12 @@ bool base_safe_bus<Bus, Locker>::remove_connector() const
 
 } //namespace bus
 
-typedef bus::simple_bus<single_input_connector_type> single_input_bus_type;
-typedef bus::simple_bus<single_output_connector_type> single_output_bus_type;
-typedef bus::simple_bus<single_bidirectional_connector_type> single_bidirectional_bus_type;
-typedef bus::simple_bus<multi_input_connector_type> multi_input_bus_type;
-typedef bus::simple_bus<multi_output_connector_type> multi_output_bus_type;
-typedef bus::simple_bus<multi_bidirectional_connector_type> multi_bidirectional_bus_type;
+typedef bus::base_safe_bus<bus::single_input_bus_type> single_input_bus_type;
+typedef bus::base_safe_bus<bus::single_output_bus_type> single_output_bus_type;
+typedef bus::base_safe_bus<bus::single_bidirectional_bus_type> single_bidirectional_bus_type;
+typedef bus::base_safe_bus<bus::multi_input_bus_type> multi_input_bus_type;
+typedef bus::base_safe_bus<bus::multi_output_bus_type> multi_output_bus_type;
+typedef bus::base_safe_bus<bus::multi_bidirectional_bus_type> multi_bidirectional_bus_type;
 
 typedef bus::pbus_type pbus_type;
 

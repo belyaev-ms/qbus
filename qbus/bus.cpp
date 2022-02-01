@@ -28,7 +28,7 @@ base_bus::base_bus(const std::string& name) :
 //virtual
 base_bus::~base_bus()
 {
-    close_bus();
+    close();
 }
 
 /**
@@ -455,7 +455,7 @@ bool base_bus::do_open()
 /**
  * Close the bus
  */
-void base_bus::close_bus()
+void base_bus::close()
 {
     m_pconnectors.clear();
 }
