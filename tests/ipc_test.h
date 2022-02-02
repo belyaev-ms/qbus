@@ -14,8 +14,8 @@
 #include <string>
 
 const size_t count = 10;
-const std::string test_producer = "./test_producer";
-const std::string test_consumer = "./test_consumer";
+const std::string test_producer = "./" QBUS_IPC_TEST_PRODUCER;
+const std::string test_consumer = "./" QBUS_IPC_TEST_CONSUMER;
 const std::string test_producer_log = test_producer + ".log";
 const std::string test_consumer_log_ = test_consumer + ".%d.log";
 
