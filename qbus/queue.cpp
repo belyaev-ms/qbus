@@ -275,15 +275,18 @@ const pmessage_type base_queue::get() const
 
 /**
  * Remove the next message
+ * @return the result of the removing
  */
-void base_queue::pop()
+bool base_queue::pop()
 {
     const size_t cnt = count();
     if (cnt > 0)
     {
         const message_desc_type message_desc = get_message();
         pop_message(message_desc);
+        return true;
     }
+    return false;
 }
 
 #ifdef QBUS_TEST_ENABLED

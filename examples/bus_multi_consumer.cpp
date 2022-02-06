@@ -7,13 +7,14 @@ using namespace qbus;
 int main(int argc, char** argv)
 {
     const char *name = argc > 1 ? argv[1] : "test";
-    pbus_type pbus = bus::make<single_input_bus_type>(name);
+    pbus_type pbus = bus::make<multi_input_bus_type>(name);
     if (pbus->open())
     {
+        struct timespec timeout = { 0, 0 };
+        timeout.tv_sec = 1;
         while (true)
         {
-            sleep(1);
-            pmessage_type pmessage = pbus->get();
+            pmessage_type pmessage = pbus->get(timeout);
             std::cout << name << ":> ";
             if (pmessage)
             {
@@ -24,7 +25,7 @@ int main(int argc, char** argv)
                     pmessage->unpack(&s[0]);
                     std::cout << &s[0];
                 }
-                pbus->pop();
+                pbus->pop(timeout);
             }
             std::cout << std::endl;
         }

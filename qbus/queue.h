@@ -31,7 +31,7 @@ public:
     virtual ~base_queue();
     bool push(const tag_type tag, const void *data, const size_t sz); ///< push new message to the queue
     const pmessage_type get() const; ///< get the next message
-    void pop(); ///< remove the next message
+    bool pop(); ///< remove the next message
     id_type id() const; ///< get the identifier of the queue
     size_t capacity() const; ///< get the capacity of the queue
     virtual size_t count() const; ///< get the count of messages

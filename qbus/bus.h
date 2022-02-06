@@ -111,6 +111,9 @@ protected:
     void free_memory(); ///< free the shared memory
     virtual const specification_type& get_spec() const; ///< get the specification of the bus
     virtual controlblock_type& get_controlblock() const; ///< get the control block of the bus
+    controlblock_type& get_shared_controlblock() const; ///< get the shared control block of the bus
+    virtual bool add_connector() const; ///< add new connector to the bus
+    virtual bool remove_connector() const; ///< remove the back connector from the bus
 private:
     enum update_status
     {

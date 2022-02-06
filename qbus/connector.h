@@ -438,8 +438,7 @@ const pmessage_type simple_connector<Queue>::do_get() const
 template <typename Queue>
 bool simple_connector<Queue>::do_pop()
 {
-    m_pqueue->pop();
-    return true;
+    return m_pqueue->pop();
 }
 
 /**

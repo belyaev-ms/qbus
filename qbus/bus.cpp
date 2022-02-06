@@ -119,6 +119,7 @@ bool base_bus::add_connector() const
         {
             m_pconnectors.push_front(pconnector);
             ++cb.output_id;
+            ++cb.epoch;
             return true;
         }
     }
@@ -137,6 +138,7 @@ bool base_bus::remove_connector() const
     {
         m_pconnectors.pop_back();
         ++cb.input_id;
+        ++cb.epoch;
         if (m_pconnectors.empty())
         {
             pconnector_type pconnector = make_connector(cb.input_id);
@@ -214,23 +216,12 @@ bool base_bus::push(const tag_type tag, const void *data, const size_t size,
 {
     if (m_opened)
     {
-        bool result = do_timed_push(tag, data, size, timeout);
-        if (!result)
+        while (!do_timed_push(tag, data, size, timeout))
         {
-            const struct timespec limit = get_monotonic_time() + timeout;
-            do
+            if (!add_connector())
             {
-                if (!add_connector())
-                {
-                    return false;
-                }
-                const struct timespec now = get_monotonic_time();
-                if (now >= limit)
-                {
-                    return false;
-                }
-                result = do_timed_push(tag, data, size, limit - now);
-            } while (!result);
+                return false;
+            }
         }
         return true;
     }
@@ -246,12 +237,8 @@ const pmessage_type base_bus::get() const
     if (m_opened)
     {
         pmessage_type pmessage = do_get();
-        while (!pmessage)
+        while (!pmessage && remove_connector())
         {
-            if (!remove_connector())
-            {
-                return pmessage_type();
-            }
             pmessage = do_get();
         }
         return pmessage;
@@ -269,22 +256,9 @@ const pmessage_type base_bus::get(const struct timespec& timeout) const
     if (m_opened)
     {
         pmessage_type pmessage = do_timed_get(timeout);
-        if (!pmessage)
+        while (!pmessage && remove_connector())
         {
-            const struct timespec limit = get_monotonic_time() + timeout;
-            do
-            {
-                if (!remove_connector())
-                {
-                    return pmessage_type();
-                }
-                const struct timespec now = get_monotonic_time();
-                if (now >= limit)
-                {
-                    return pmessage_type();
-                }
-                pmessage = do_timed_get(limit - now);
-            } while (!pmessage);
+            pmessage = do_timed_get(timeout);
         }
         return pmessage;
     }
@@ -320,23 +294,12 @@ bool base_bus::pop(const struct timespec& timeout)
 {
     if (m_opened)
     {
-        bool result = do_timed_pop(timeout);
-        if (!result)
+        while (!do_timed_pop(timeout))
         {
-            const struct timespec limit = get_monotonic_time() + timeout;
-            do
+            if (!remove_connector())
             {
-                if (!remove_connector())
-                {
-                    return false;
-                }
-                const struct timespec now = get_monotonic_time();
-                if (now >= limit)
-                {
-                    return false;
-                }
-                result = do_timed_pop(limit - now);
-            } while (!result);
+                return false;
+            }
         }
         return true;
     }
@@ -588,18 +551,15 @@ bool shared_bus::attach_body()
 //virtual
 bool shared_bus::do_push(const tag_type tag, const void *data, const size_t size)
 {
-    if (update_output_connector())
+    update_output_connector();
+    do
     {
-        do
+        if (!base_type::do_push(tag, data, size))
         {
-            if (!base_type::do_push(tag, data, size))
-            {
-                return false;
-            }
-        } while (!update_output_connector());
-        return true;
-    }
-    return base_type::do_push(tag, data, size);
+            return false;
+        }
+    } while (update_output_connector());
+    return true;
 }
 
 /**
@@ -614,7 +574,15 @@ bool shared_bus::do_push(const tag_type tag, const void *data, const size_t size
 bool shared_bus::do_timed_push(const tag_type tag, const void *data, const size_t size,
     const struct timespec& timeout)
 {
-    return base_type::do_timed_push(tag, data, size, timeout);
+    update_output_connector();
+    do
+    {
+        if (!base_type::do_timed_push(tag, data, size, timeout))
+        {
+            return false;
+        }
+    } while (update_output_connector());
+    return true;
 }
 
 /**
@@ -624,7 +592,12 @@ bool shared_bus::do_timed_push(const tag_type tag, const void *data, const size_
 //virtual
 const pmessage_type shared_bus::do_get() const
 {
-    return base_type::do_get();
+    pmessage_type pmessage = base_type::do_get();
+    while (!pmessage && update_input_connector())
+    {
+        pmessage = base_type::do_get();
+    }
+    return pmessage;
 }
 
 /**
@@ -635,7 +608,12 @@ const pmessage_type shared_bus::do_get() const
 //virtual
 const pmessage_type shared_bus::do_timed_get(const struct timespec& timeout) const
 {
-    return base_type::do_timed_get(timeout);
+    pmessage_type pmessage = base_type::do_timed_get(timeout);
+    while (!pmessage && update_input_connector())
+    {
+        pmessage = base_type::do_timed_get(timeout);
+    }
+    return pmessage;
 }
 
 /**
@@ -645,7 +623,12 @@ const pmessage_type shared_bus::do_timed_get(const struct timespec& timeout) con
 //virtual
 bool shared_bus::do_pop()
 {
-    return base_type::do_pop();
+    bool result = base_type::do_pop();
+    while (!result && update_input_connector())
+    {
+        result = base_type::do_pop();
+    }
+    return result;
 }
 
 /**
@@ -656,7 +639,12 @@ bool shared_bus::do_pop()
 //virtual
 bool shared_bus::do_timed_pop(const struct timespec& timeout)
 {
-    return base_type::do_timed_pop(timeout);
+    bool result = base_type::do_timed_pop(timeout);
+    while (!result && update_input_connector())
+    {
+        result = base_type::do_timed_pop(timeout);
+    }
+    return result;
 }
 
 /**
@@ -676,8 +664,16 @@ const specification_type& shared_bus::get_spec() const
 //virtual
 controlblock_type& shared_bus::get_controlblock() const
 {
-    return m_status != US_NONE ? m_controlblock :
-        reinterpret_cast<bus_body*>(get_memory())->controlblock;
+    return m_status != US_NONE ? m_controlblock : get_shared_controlblock();
+}
+
+/**
+ * Get the shared control block of the bus
+ * @return the control block of the bus
+ */
+controlblock_type& shared_bus::get_shared_controlblock() const
+{
+    return reinterpret_cast<bus_body*>(get_memory())->controlblock;
 }
 
 /**
@@ -686,14 +682,14 @@ controlblock_type& shared_bus::get_controlblock() const
  */
 bool shared_bus::is_updated() const
 {
-    controlblock_type& cb = get_controlblock();
+    controlblock_type& cb = get_shared_controlblock();
     const uint32_t epoch = boost::interprocess::ipcdetail::atomic_read32(&cb.epoch);
     if (epoch != m_controlblock.epoch)
     {
         m_controlblock.epoch = epoch;
-        return false;
+        return true;
     }
-    return true;
+    return false;
 }
 
 /**
@@ -702,27 +698,30 @@ bool shared_bus::is_updated() const
  */
 shared_bus::update_status shared_bus::update_connectors() const
 {
-    if (!is_updated())
+    if (is_updated())
     {
         rollback<update_status> st(m_status);
-        controlblock_type& cb = get_controlblock();
-        const id_type output_id = boost::interprocess::ipcdetail::atomic_read32(&cb.output_id);
+        controlblock_type& cb = get_shared_controlblock();
+        const uint32_t output_id = boost::interprocess::ipcdetail::atomic_read32(&cb.output_id);
         if (output_id != m_controlblock.output_id)
         {
-            while (m_controlblock.output_id != output_id)
-            {
-                add_connector();
-            }
             m_status = US_OUTPUT;
-        }
-        const id_type input_id = boost::interprocess::ipcdetail::atomic_read32(&cb.input_id);
-        if (input_id != m_controlblock.output_id)
-        {
-            while (m_controlblock.output_id != output_id)
+            while (output_id != m_controlblock.output_id)
             {
-                remove_connector();
+                if (!add_connector())
+                {
+                    return US_NONE; ///@todo need to improve this situations! it's wrong decision!!!
+                }
             }
+        }
+        const uint32_t input_id = boost::interprocess::ipcdetail::atomic_read32(&cb.input_id);
+        if (input_id != m_controlblock.input_id)
+        {
             m_status = US_OUTPUT == m_status ? US_BOTH : US_INPUT;
+            if (!remove_connector())
+            {
+                return US_NONE; ///@todo need to improve this situations! it's wrong decision!!!
+            }
         }
         return m_status;
     }
@@ -745,6 +744,38 @@ bool shared_bus::update_input_connector() const
 bool shared_bus::update_output_connector() const
 {
     return update_connectors() & US_OUTPUT;
+}
+
+/**
+ * Add new connector to the bus
+ * @return result of the adding
+ */
+//virtual
+bool shared_bus::add_connector() const
+{
+    const bool result = base_type::add_connector();
+    if (result && US_NONE == m_status)
+    {
+        controlblock_type& cb = get_shared_controlblock();
+        m_controlblock.output_id = boost::interprocess::ipcdetail::atomic_read32(&cb.output_id);
+    }
+    return result;
+}
+
+/**
+ * Remove the back connector from the bus
+ * @return result of the removing
+ */
+//virtual
+bool shared_bus::remove_connector() const
+{
+    const bool result = base_type::remove_connector();
+    if (result && US_NONE == m_status)
+    {
+        controlblock_type& cb = get_shared_controlblock();
+        m_controlblock.input_id = boost::interprocess::ipcdetail::atomic_read32(&cb.input_id);
+    }
+    return result;
 }
 
 } //namespace bus
