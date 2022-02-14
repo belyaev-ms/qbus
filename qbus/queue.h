@@ -34,6 +34,7 @@ public:
     bool pop(); ///< remove the next message
     id_type id() const; ///< get the identifier of the queue
     size_t capacity() const; ///< get the capacity of the queue
+    size_t timeout() const; ///< get the keep alive timeout
     virtual size_t count() const; ///< get the count of messages
     bool empty() const; ///< check the queue is empty 
     void clear(); ///< clear the queue
@@ -48,18 +49,21 @@ protected:
     {
         ID_OFFSET         = 0,
         ID_SIZE           = sizeof(id_type),
-        COUNT_OFFSET      = ID_OFFSET + ID_SIZE,
+        CAPACITY_OFFSET   = ID_OFFSET + ID_SIZE,
+        CAPACITY_SIZE     = sizeof(uint32_t),
+        TIMEOUT_OFFSET    = CAPACITY_OFFSET + CAPACITY_SIZE,
+        TIMEOUT_SIZE      = sizeof(uint32_t),
+        COUNT_OFFSET      = TIMEOUT_OFFSET + TIMEOUT_SIZE,
         COUNT_SIZE        = sizeof(uint32_t),
         HEAD_OFFSET       = COUNT_OFFSET + COUNT_SIZE,
         HEAD_SIZE         = sizeof(pos_type),
         TAIL_OFFSET       = HEAD_OFFSET + HEAD_SIZE,
         TAIL_SIZE         = HEAD_SIZE,
-        CAPACITY_OFFSET   = TAIL_OFFSET + TAIL_SIZE,
-        CAPACITY_SIZE     = sizeof(uint32_t),
-        DATA_OFFSET       = CAPACITY_OFFSET + CAPACITY_SIZE,
+        DATA_OFFSET       = TAIL_OFFSET + TAIL_SIZE,
         HEADER_SIZE       = DATA_OFFSET
     };
     void id(const id_type value); ///< set the identifier of the queue
+    void timeout(const size_t value); ///< set the keep alive timeout
     virtual pos_type head() const; /// get the head of the queue
     void head(const pos_type value); /// set the head of the queue
     pos_type tail() const; /// get the tail of the queue
@@ -77,6 +81,7 @@ private:
     base_queue();
     base_queue(const base_queue&);
     base_queue& operator=(const base_queue&);
+    bool do_push(const tag_type tag, const void *data, const size_t sz); ///< push new message to the queue
     void capacity(const size_t capacity); ///< set the capacity of of the queue
 #ifdef QBUS_TEST_ENABLED    
     region_type get_real_busy_region(region_type *pprev_region = NULL) const; ///< get the real next busy region
