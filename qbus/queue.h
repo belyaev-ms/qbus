@@ -35,6 +35,7 @@ public:
     id_type id() const; ///< get the identifier of the queue
     size_t capacity() const; ///< get the capacity of the queue
     size_t timeout() const; ///< get the keep alive timeout
+    void timeout(const size_t value); ///< set the keep alive timeout
     virtual size_t count() const; ///< get the count of messages
     bool empty() const; ///< check the queue is empty 
     void clear(); ///< clear the queue
@@ -63,7 +64,6 @@ protected:
         HEADER_SIZE       = DATA_OFFSET
     };
     void id(const id_type value); ///< set the identifier of the queue
-    void timeout(const size_t value); ///< set the keep alive timeout
     virtual pos_type head() const; /// get the head of the queue
     void head(const pos_type value); /// set the head of the queue
     pos_type tail() const; /// get the tail of the queue

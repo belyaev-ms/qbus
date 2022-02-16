@@ -242,3 +242,28 @@ BOOST_AUTO_TEST_CASE(one_producer_and_one_consumer_test)
         BOOST_REQUIRE_EQUAL(consumer_queue.count(), 0);
     }
 }
+
+BOOST_AUTO_TEST_CASE(keep_alive_timeout_test)
+{
+    pmessage_type pmessage;
+
+    const size_t capacity = 1024;
+    const queue::id_type id = 1;
+    const size_t message_size = message::base_message::static_capacity(32);
+    buffer_t memory(queue::simple_queue::static_size(capacity));
+    queue::simple_queue producer_queue(0, &memory[0], capacity);
+    queue::simple_queue consumer_queue(&memory[0]);
+
+    buffer_t buffer = make_buffer(message_size);
+    size_t count = capacity / message::base_message::static_size(message_size);
+    for (size_t i = 0; i < count; ++i)
+    {
+        BOOST_REQUIRE(producer_queue.push(0, &buffer[0], buffer.size()));
+        BOOST_REQUIRE_EQUAL(producer_queue.count(), i + 1);
+        BOOST_REQUIRE_EQUAL(consumer_queue.count(), i + 1);
+    }
+    BOOST_REQUIRE(!producer_queue.push(0, &buffer[0], buffer.size()));
+    producer_queue.timeout(1);
+    sleep(2);
+    BOOST_REQUIRE(producer_queue.push(0, &buffer[0], buffer.size()));
+}
