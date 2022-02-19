@@ -31,7 +31,7 @@ int main(int argc, char** argv)
     const char *name = "test_bus";
     bus::specification_type spec;
     spec.id = 1;
-    spec.keep_alive_timeout = 0;
+    spec.keepalive_timeout = 0;
     spec.min_capacity = 32 * 512;
     spec.max_capacity = 64 * 512;
     spec.capacity_factor = 50;

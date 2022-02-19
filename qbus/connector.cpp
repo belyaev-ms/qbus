@@ -51,13 +51,15 @@ direction_type base_connector::type() const
  * Create the connector
  * @param cid the identifier of the connector
  * @param size the size of a queue
+ * @param pkeepalive_timeout the keep alive timeout of the connector
  * @return the result of the creating
  */
-bool base_connector::create(const id_type cid, const size_t size)
+bool base_connector::create(const id_type cid, const size_t size,
+        const struct timespec *pkeepalive_timeout)
 {
     if (!m_opened)
     {
-        m_opened = do_create(cid, size);
+        m_opened = do_create(cid, size, pkeepalive_timeout);
         return m_opened;
     }
     return false;
@@ -252,10 +254,12 @@ shared_connector::shared_connector(const std::string& name, const direction_type
  * Create the connector
  * @param cid the identifier of the connector
  * @param size the size of a queue
+ * @param pkeepalive_timeout the keep alive timeout of the connector
  * @return the result of the creating
  */
 //virtual
-bool shared_connector::do_create(const id_type cid, const size_t size)
+bool shared_connector::do_create(const id_type cid, const size_t size,
+    const struct timespec *pkeepalive_timeout)
 {
     return create_memory(size);
 }

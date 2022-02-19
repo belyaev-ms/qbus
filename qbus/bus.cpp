@@ -93,10 +93,13 @@ pconnector_type base_bus::make_connector(const id_type id) const
     const specification_type sp = spec();
     if (m_pconnectors.empty() || sp.capacity_factor > 0)
     {
+        struct timespec timeout = { 0, 0 };
+        timeout.tv_sec = sp.keepalive_timeout;
         size_type old_capacity = !m_pconnectors.empty() ? output_connector()->capacity() : 0;
         size_type new_capacity = std::max(sp.min_capacity, old_capacity * (sp.capacity_factor + 100) / 100);
         new_capacity = std::min(new_capacity, sp.max_capacity);
-        if (new_capacity > old_capacity && pconnector->create(sp.id, new_capacity))
+        if (new_capacity > old_capacity && 
+            pconnector->create(sp.id, new_capacity, timeout.tv_sec ? &timeout : NULL))
         {
             return pconnector;
         }

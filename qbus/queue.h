@@ -34,8 +34,8 @@ public:
     bool pop(); ///< remove the next message
     id_type id() const; ///< get the identifier of the queue
     size_t capacity() const; ///< get the capacity of the queue
-    size_t timeout() const; ///< get the keep alive timeout
-    void timeout(const size_t value); ///< set the keep alive timeout
+    size_t keepalive_timeout() const; ///< get the keep alive timeout
+    void keepalive_timeout(const size_t value); ///< set the keep alive timeout
     virtual size_t count() const; ///< get the count of messages
     bool empty() const; ///< check the queue is empty 
     void clear(); ///< clear the queue

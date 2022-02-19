@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(simple_test)
     BOOST_REQUIRE(pbus2);
     bus::specification_type spec;
     spec.id = 1;
-    spec.keep_alive_timeout = 0;
+    spec.keepalive_timeout = 0;
     spec.min_capacity = 32 * 512;
     spec.max_capacity = 64 * 512;
     spec.capacity_factor = 50;
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(overflow_test)
     BOOST_REQUIRE(pbus2);
     bus::specification_type spec;
     spec.id = 1;
-    spec.keep_alive_timeout = 0;
+    spec.keepalive_timeout = 0;
     spec.min_capacity = 32 * 512;
     spec.max_capacity = 64 * 512;
     spec.capacity_factor = 50;
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(overflow_test1)
     BOOST_REQUIRE(pbus2);
     bus::specification_type spec;
     spec.id = 1;
-    spec.keep_alive_timeout = 0;
+    spec.keepalive_timeout = 0;
     spec.min_capacity = 8 * 512;
     spec.max_capacity = 64 * 512;
     spec.capacity_factor = 50;
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(overflow_test2)
     BOOST_REQUIRE(pbus2);
     bus::specification_type spec;
     spec.id = 1;
-    spec.keep_alive_timeout = 0;
+    spec.keepalive_timeout = 0;
     spec.min_capacity = 32 * 512;
     spec.max_capacity = 64 * 512;
     spec.capacity_factor = 50;
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(overflow_test3)
     BOOST_REQUIRE(pbus2);
     bus::specification_type spec;
     spec.id = 1;
-    spec.keep_alive_timeout = 0;
+    spec.keepalive_timeout = 0;
     spec.min_capacity = 8 * 512;
     spec.max_capacity = 64 * 512;
     spec.capacity_factor = 50;

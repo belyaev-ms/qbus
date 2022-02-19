@@ -9,7 +9,7 @@ int main(int argc, char** argv)
     pbus_type pbus = bus::make<multi_bidirectional_bus_type>(name);
     bus::specification_type spec;
     spec.id = 1;
-    spec.keep_alive_timeout = 0;
+    spec.keepalive_timeout = 0;
     spec.min_capacity = 64;
     spec.max_capacity = 8 * 512;
     spec.capacity_factor = 10;

@@ -23,7 +23,7 @@ typedef pos_type size_type;
 struct specification_type
 {
     id_type id; ///< the identifier of a bus
-    size_type keep_alive_timeout; ///< the maximum idle time before forcibly removing a message
+    size_type keepalive_timeout; ///< the maximum idle time before forcibly removing a message
     size_type min_capacity; ///< the minimum value of a bus capacity
     size_type max_capacity; ///< the maximum value of a bus capacity
     size_type capacity_factor; ///< the new value of bus capacity will be = capacity * (capacity_factor + 100) / 100

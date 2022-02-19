@@ -87,7 +87,7 @@ void base_queue::capacity(const size_t value)
  * Get the keep alive timeout
  * @return the keep alive timeout
  */
-size_t base_queue::timeout() const
+size_t base_queue::keepalive_timeout() const
 {
     return *reinterpret_cast<const uint32_t*>(m_ptr + TIMEOUT_OFFSET);
 }
@@ -96,7 +96,7 @@ size_t base_queue::timeout() const
  * Set the keep alive timeout
  * @param value the keep alive timeout
  */
-void base_queue::timeout(const size_t value)
+void base_queue::keepalive_timeout(const size_t value)
 {
     *reinterpret_cast<uint32_t*>(m_ptr + TIMEOUT_OFFSET) = value;
 }
@@ -184,7 +184,7 @@ void base_queue::clear()
     head(0);
     tail(0);
     count(0);
-    timeout(0);
+    keepalive_timeout(0);
 }
 
 /**
@@ -239,10 +239,10 @@ bool base_queue::push(const tag_type tag, const void *data, const size_t size)
 {
     if (!do_push(tag, data, size))
     {
-        const size_t to = timeout();
-        if (to > 0)
+        const size_t timeout = keepalive_timeout();
+        if (timeout > 0)
         {
-            const size_t limit = message::get_timestamp() - to;
+            const size_t limit = message::get_timestamp() - timeout;
             do
             {
                 if (empty())
