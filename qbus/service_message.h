@@ -1,6 +1,9 @@
 #ifndef QBUS_SERVICE_MESSAGE_H
 #define QBUS_SERVICE_MESSAGE_H
 
+#include "qbus/message.h"
+#include <limits>
+
 namespace qbus
 {
     
@@ -16,7 +19,7 @@ class service_message : public Message
 public:
     enum
     {
-        TAG = 0
+        TAG = std::numeric_limits<tag_type>::max()
     };
     enum code_type
     {
