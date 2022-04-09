@@ -268,6 +268,7 @@ bool base_queue::push(const tag_type tag, const void *data, const size_t size)
  * @param pprev_region the pointer to the previous free region
  * @return the next free region
  */
+//virtual
 typename base_queue::region_type base_queue::get_free_region(region_type *pprev_region) const
 {
     const size_t cpct = capacity();
@@ -293,6 +294,7 @@ typename base_queue::region_type base_queue::get_free_region(region_type *pprev_
  * @param pprev_region the pointer to the previous busy region
  * @return the next busy region
  */
+//virtual
 typename base_queue::region_type base_queue::get_busy_region(region_type *pprev_region) const
 {
     const size_t cpct = capacity();
@@ -766,12 +768,10 @@ size_t unreadable_shared_queue::clean()
  * @param ptr the pointer to the header of the queue
  */
 smart_shared_queue::smart_shared_queue(void *ptr) : 
-    base_shared_queue(ptr)
+    base_shared_queue(ptr),
+    m_state(ST_UNKNOWN)
 {
-    push_service_message(service_message_type::CODE_CONNECT);
-    m_head = tail();
-    m_counter = counter();
-    inc_subscriptions_count();
+    initialize();
 }
 
 /**
@@ -781,7 +781,15 @@ smart_shared_queue::smart_shared_queue(void *ptr) :
  * @param cpct the capacity of the queue
  */
 smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_t cpct) : 
-    base_shared_queue(qid, ptr, cpct)
+    base_shared_queue(qid, ptr, cpct),
+    m_state(ST_UNKNOWN)
+{
+    initialize();
+}
+/**
+ * Initialize the queue
+ */
+void smart_shared_queue::initialize()
 {
     push_service_message(service_message_type::CODE_CONNECT);
     m_head = tail();
@@ -820,6 +828,8 @@ smart_shared_queue::~smart_shared_queue()
  */
 void smart_shared_queue::push_service_message(service_code_type code)
 {
+    rollback<state_type> state(m_state);
+    m_state = ST_PUSH_SPECIAL_MESSAGE;
     unsigned int k = 0;
     uint8_t data = code;
     while (!push(service_message_type::TAG, &data, 1))
@@ -860,6 +870,24 @@ typename smart_shared_queue::message_desc_type smart_shared_queue::get_message()
         const_cast<smart_shared_queue*>(this)->pop_message(message_desc);
     } while (count() > 0);
     return std::make_pair(pmessage_type(), 0);
+}
+
+/**
+ * Get the next free region
+ * @param pprev_region the pointer to the previous free region
+ * @return the next free region
+ */
+//virtual
+typename base_queue::region_type smart_shared_queue::get_free_region(region_type *pprev_region) const
+{
+    region_type region = base_shared_queue::get_free_region(pprev_region);
+    if (m_state != ST_PUSH_SPECIAL_MESSAGE)
+    {
+        size_t size = region.second + (pprev_region ? pprev_region->second : 0);
+        return size < 2 * service_message_type::static_size(1) * subscriptions_count() ?
+            region_type(region.first, 0) : region;
+    }
+    return region;
 }
 
 } //namespace queue

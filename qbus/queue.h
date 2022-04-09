@@ -75,8 +75,8 @@ protected:
     virtual void pop_message(const message_desc_type& message_desc) = 0; ///< pop a message from the queue
     virtual pmessage_type make_message(void *ptr, const size_t cpct) const = 0; ///< make an empty message
     virtual pmessage_type make_message(void *ptr) const = 0; ///< make an empty message
-    region_type get_free_region(region_type *pprev_region = NULL) const; ///< get the next free region
-    region_type get_busy_region(region_type *pprev_region = NULL) const; ///< get the next busy region
+    virtual region_type get_free_region(region_type *pprev_region = NULL) const; ///< get the next free region
+    virtual region_type get_busy_region(region_type *pprev_region = NULL) const; ///< get the next busy region
 private:
     base_queue();
     base_queue(const base_queue&);
@@ -192,8 +192,17 @@ public:
     smart_shared_queue(const id_type qid, void *ptr, const size_t cpct);
     virtual ~smart_shared_queue();
 protected:
+    void initialize(); ///< initialize the queue
     virtual message_desc_type get_message() const; ///< get a message from the queue
     void push_service_message(service_code_type code); ///< push a service message to the queue
+    virtual region_type get_free_region(region_type *pprev_region = NULL) const; ///< get the next free region
+private:
+    enum state_type
+    {
+        ST_UNKNOWN,
+        ST_PUSH_SPECIAL_MESSAGE
+    };
+    state_type m_state;
 };
 
 } //namespace queue
