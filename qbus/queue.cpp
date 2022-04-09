@@ -455,7 +455,7 @@ void simple_queue::pop_message(const message_desc_type& message_desc)
 {
     message_desc.first->dec_counter();
     head(message_desc.second);
-    count(count() - 1); ///< !!!! dec count && inc count
+    count(count() - 1); ///@todo !!!! dec count && inc count
 }
 
 /**
@@ -786,6 +786,72 @@ smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_
 {
     initialize();
 }
+
+/**
+ * Constructor for a booked queue
+ * @param ptr the pointer to the header of the queue
+ * @param pqueue the parent queue
+ */
+smart_shared_queue::smart_shared_queue(void *ptr, pqueue_type pqueue) :
+    base_shared_queue(ptr),
+    m_state(ST_UNKNOWN)
+{
+    if (!pqueue)
+    {
+        initialize();
+    }
+    else
+    {
+        assert(dynamic_cast<smart_shared_queue*>(pqueue.get()) != NULL);
+        m_counter = 0;
+        size_t booked_count = 0;
+        while (count() > 0)
+        {
+            const message_desc_type message_desc = base_shared_queue::get_message();
+            assert(message_desc.first && message_desc.first->tag() == service_message_type::TAG);
+            service_message_type *pmessage =
+                static_cast<service_message_type*>(message_desc.first.get());
+            if (pmessage->code() != service_message_type::CODE_BOOK)
+            {
+                pop_message(message_desc);
+                break;
+            }
+            pop_message(message_desc);
+            ++booked_count;
+        }
+        assert(booked_count > 0);
+    }
+}
+
+/**
+ * Constructor for a booked queue
+ * @param qid the identifier of the queue
+ * @param ptr the pointer to the header of the queue
+ * @param cpct the capacity of the queue
+ * @param pqueue the parent queue
+ */
+smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_t cpct,
+        pqueue_type pqueue) :
+    base_shared_queue(qid, ptr, cpct),
+    m_state(ST_UNKNOWN)
+{
+    if (pqueue)
+    {
+        smart_shared_queue *pq = dynamic_cast<smart_shared_queue*>(pqueue.get());
+        assert(pq != NULL);
+        const size_t count = pq->subscriptions_count();
+        if (count > 1)
+        {
+            subscriptions_count(count - 1);
+            for (size_t i = 0; i < count - 1; ++i)
+            {
+                push_service_message(smart_shared_queue::service_message_type::CODE_BOOK);
+            }
+        }
+    }
+    initialize();
+}
+
 /**
  * Initialize the queue
  */

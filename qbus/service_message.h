@@ -25,6 +25,7 @@ public:
     {
         CODE_CONNECT,
         CODE_DISCONNECT,
+        CODE_BOOK,
         CODE_COUNT
     };
     uint8_t code() const

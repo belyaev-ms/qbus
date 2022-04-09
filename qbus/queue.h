@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include "qbus/message.h"
 #include "qbus/service_message.h"
 
@@ -180,11 +181,41 @@ public:
 };
 
 /**
+ * Create a queue
+ * @param qid the identifier of the queue
+ * @param ptr the pointer to the header of the queue
+ * @param cpct the capacity of the queue
+ * @param pqueue the parent queue
+ * @return the queue
+ */
+template <typename Queue>
+inline pqueue_type create(const id_type qid, void *ptr, const size_t cpct,
+    pqueue_type pqueue = pqueue_type())
+{
+    return boost::make_shared<Queue>(qid, ptr, cpct);
+}
+
+/**
+ * Open a queue
+ * @param ptr the pointer to the header of the queue
+ * @param pqueue the parent queue
+ * @return the queue
+ */
+template <typename Queue>
+inline pqueue_type open(void *ptr, pqueue_type pqueue = pqueue_type())
+{
+    return boost::make_shared<Queue>(ptr); 
+}
+
+/**
  * The shared queue that has a lot of readers and writers and supports
  * dynamic subscriber connection and subscriber disconnection
  */
 class smart_shared_queue : public base_shared_queue
 {
+    friend pqueue_type create<smart_shared_queue>(const id_type qid, void *ptr, 
+        const size_t cpct, pqueue_type pqueue);
+    friend pqueue_type open<smart_shared_queue>(void *ptr, pqueue_type pqueue);
     typedef message::service_message<message_type> service_message_type;
     typedef service_message_type::code_type service_code_type;
 public:
@@ -192,6 +223,8 @@ public:
     smart_shared_queue(const id_type qid, void *ptr, const size_t cpct);
     virtual ~smart_shared_queue();
 protected:
+    smart_shared_queue(void *ptr, pqueue_type pqueue);
+    smart_shared_queue(const id_type qid, void *ptr, const size_t cpct, pqueue_type pqueue);
     void initialize(); ///< initialize the queue
     virtual message_desc_type get_message() const; ///< get a message from the queue
     void push_service_message(service_code_type code); ///< push a service message to the queue
@@ -204,6 +237,21 @@ private:
     };
     state_type m_state;
 };
+
+template < >
+inline pqueue_type create<smart_shared_queue>(const id_type qid, void *ptr, 
+    const size_t cpct, pqueue_type pqueue)
+{
+    boost::shared_ptr<smart_shared_queue> result(new smart_shared_queue(qid, ptr, cpct, pqueue));
+    return result;
+}
+
+template < >
+inline pqueue_type open<smart_shared_queue>(void *ptr, pqueue_type pqueue)
+{
+    boost::shared_ptr<smart_shared_queue> result(new smart_shared_queue(ptr, pqueue));
+    return result;
+}
 
 } //namespace queue
 
