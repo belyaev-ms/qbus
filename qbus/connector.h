@@ -16,6 +16,11 @@
 namespace qbus
 {
 
+namespace bus 
+{
+    class base_bus;
+}
+
 namespace connector
 {
     
@@ -36,7 +41,9 @@ enum direction_type
  */
 class base_connector
 {
+    friend class qbus::bus::base_bus;
 public:
+    typedef boost::shared_ptr<base_connector> pconnector_type;
     base_connector(const std::string& name, const direction_type type);
     virtual ~base_connector();
     const std::string& name() const; ///< get the name of the connector
@@ -53,9 +60,9 @@ public:
     bool enabled() const; ///< check if the connected is enabled
     size_t capacity() const; ///< get the capacity of the connector
 protected:
-    virtual bool do_create(const id_type cid, const size_t size, 
-        const struct timespec *pkeepalive_timeout) = 0; ///< create the connector
-    virtual bool do_open() = 0; ///< open the connector
+    virtual bool do_create(const id_type cid, const size_t size,
+        const struct timespec *pkeepalive_timeout, pconnector_type pconnector) = 0; ///< create the connector
+    virtual bool do_open(pconnector_type pconnector) = 0; ///< open the connector
     virtual bool do_push(const tag_type tag, const void *data, const size_t size) = 0; ///< push data to the connector
     virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the connector
     virtual const pmessage_type do_get() const = 0; ///< get the next message from the connector
@@ -64,13 +71,17 @@ protected:
     virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the connector
     virtual size_t get_capacity() const = 0; ///< get the capacity of the connector
 private:
+    bool create(const id_type cid, const size_t size, 
+        const struct timespec *pkeepalive_timeout, pconnector_type pconnector); ///< create the connector
+    bool open(pconnector_type pconnector); ///< open the connector
+private:
     const std::string m_name;
     const direction_type m_type;
     bool m_opened;
 };
 
 typedef base_connector connector_type;
-typedef boost::shared_ptr<connector_type> pconnector_type;
+typedef connector_type::pconnector_type pconnector_type;
 
 /**
  * The shared connector
@@ -81,8 +92,8 @@ public:
     shared_connector(const std::string& name, const direction_type type);
 protected:
     virtual bool do_create(const id_type cid, const size_t size, 
-        const struct timespec *pkeepalive_timeout); ///< create the connector
-    virtual bool do_open(); ///< open the connector
+        const struct timespec *pkeepalive_timeout, pconnector_type pconnector); ///< create the connector
+    virtual bool do_open(pconnector_type pconnector); ///< open the connector
     virtual void *get_memory() const; ///< get the pointer to the shared memory
     virtual size_t memory_size(const size_t size) const = 0; ///< get the size of the shared memory
     bool create_memory(const size_t size); ///< create the shared memory
@@ -99,21 +110,20 @@ class simple_connector : public shared_connector
 {
     typedef shared_connector base_type;
     typedef Queue queue_type;
-    typedef boost::shared_ptr<queue_type> pqueue_type;
 public:
     simple_connector(const std::string& name, const direction_type type);
 protected:
     virtual bool do_create(const id_type cid, const size_t size,
-        const struct timespec *pkeepalive_timeout); ///< create the connector
-    virtual bool do_open(); ///< open the connector
+        const struct timespec *pkeepalive_timeout, pconnector_type pconnector); ///< create the connector
+    virtual bool do_open(pconnector_type pconnector); ///< open the connector
     virtual size_t memory_size(const size_t size) const; ///< get the size of the shared memory
     virtual bool do_push(const tag_type tag, const void *data, const size_t sz); ///< push data to the connector
     virtual const pmessage_type do_get() const; ///< get the next message from the connector
     virtual bool do_pop(); ///< remove the next message from the connector
     virtual size_t get_capacity() const; ///< get the capacity of the connector
     void create_queue(const id_type cid, const size_t size, 
-        const struct timespec *pkeepalive_timeout); ///< create the queue
-    void open_queue(); ///< open the queue
+        const struct timespec *pkeepalive_timeout, pconnector_type pconnector); ///< create the queue
+    void open_queue(pconnector_type pconnector); ///< open the queue
     void free_queue(); ///< free the queue
 private:
     pqueue_type m_pqueue;
@@ -258,8 +268,8 @@ public:
     virtual ~base_safe_connector();
 protected:
     virtual bool do_create(const id_type cid, const size_t size, 
-        const struct timespec *pkeepalive_timeout); ///< create the connector
-    virtual bool do_open(); ///< open the connector
+        const struct timespec *pkeepalive_timeout, pconnector_type pconnector); ///< create the connector
+    virtual bool do_open(pconnector_type pconnector); ///< open the connector
     virtual void *get_memory() const; ///< get the pointer to the shared memory
     virtual size_t memory_size(const size_t size) const; ///< get the size of the shared memory
     virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the connector
@@ -341,16 +351,17 @@ simple_connector<Queue>::simple_connector(const std::string& name, const directi
  * @param cid the identifier of the connector
  * @param size the size of a queue
  * @param pkeepalive_timeout the keep alive timeout of the connector
+ * @param pconnector the parent connector
  * @return the result of the creating
  */
 //virtual
 template <typename Queue>
 bool simple_connector<Queue>::do_create(const id_type cid, const size_t size,
-    const struct timespec *pkeepalive_timeout)
+    const struct timespec *pkeepalive_timeout, pconnector_type pconnector)
 {
-    if (base_type::do_create(cid, size, pkeepalive_timeout))
+    if (base_type::do_create(cid, size, pkeepalive_timeout, pconnector))
     {
-        create_queue(cid, size, pkeepalive_timeout);
+        create_queue(cid, size, pkeepalive_timeout, pconnector);
         return true;
     }
     return false;
@@ -358,15 +369,16 @@ bool simple_connector<Queue>::do_create(const id_type cid, const size_t size,
 
 /**
  * Open the connector
+ * @param pconnector the parent connector
  * @return the result of the opening
  */
 //virtual
 template <typename Queue>
-bool simple_connector<Queue>::do_open()
+bool simple_connector<Queue>::do_open(pconnector_type pconnector)
 {
-    if (base_type::do_open())
+    if (base_type::do_open(pconnector))
     {
-        open_queue();
+        open_queue(pconnector);
         return true;
     }
     return false;
@@ -377,12 +389,16 @@ bool simple_connector<Queue>::do_open()
  * @param cid the identifier of the queue
  * @param size the size of a queue
  * @param pkeepalive_timeout the keep alive timeout of the queue
+ * @param pconnector the parent connector
  */
 template <typename Queue>
 void simple_connector<Queue>::create_queue(const id_type cid, const size_t size, 
-    const struct timespec *pkeepalive_timeout)
+    const struct timespec *pkeepalive_timeout, pconnector_type pconnector)
 {
-    m_pqueue = boost::make_shared<queue_type>(cid, get_memory(), size);
+    m_pqueue = queue::create<queue_type>(cid, get_memory(), size, 
+        pconnector ? 
+            static_cast<simple_connector<Queue>*>(pconnector.get())->m_pqueue :
+            pqueue_type());
     if (pkeepalive_timeout != NULL)
     {
         m_pqueue->keepalive_timeout(pkeepalive_timeout->tv_sec);
@@ -391,11 +407,15 @@ void simple_connector<Queue>::create_queue(const id_type cid, const size_t size,
 
 /**
  * Open the queue
+ * @param pconnector the parent connector
  */
 template <typename Queue>
-void simple_connector<Queue>::open_queue()
+void simple_connector<Queue>::open_queue(pconnector_type pconnector)
 {
-    m_pqueue = boost::make_shared<queue_type>(get_memory());
+    m_pqueue = queue::open<queue_type>(get_memory(), 
+        pconnector ? 
+            static_cast<simple_connector<Queue>*>(pconnector.get())->m_pqueue :
+            pqueue_type());
 }
 
 /**
@@ -627,12 +647,14 @@ base_safe_connector<Connector, Locker>::~base_safe_connector()
  * @param cid the identifier of the connector
  * @param size the size of a queue
  * @param pkeepalive_timeout the keep alive timeout of the connector
+ * @param pconnector the parent connector
  * @return the result of the creating
  */
 //virtual
 template <typename Connector, typename Locker>
 bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
-    const size_t size, const struct timespec *pkeepalive_timeout)
+    const size_t size, const struct timespec *pkeepalive_timeout,
+    pconnector_type pconnector)
 {
     if (base_type::create_memory(size))
     {
@@ -647,7 +669,7 @@ bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
         ptr += sizeof(locker_type);
         m_pbarrier = new (ptr) barrier_type();
         scoped_lock_type lock(*m_plocker);
-        base_type::create_queue(cid, size, pkeepalive_timeout);
+        base_type::create_queue(cid, size, pkeepalive_timeout, pconnector);
         ++(*pcounter);
         pspinlock->unlock();
         return true;
@@ -657,11 +679,12 @@ bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
 
 /**
  * Open the connector
+ * @param pconnector the parent connector
  * @return the result of the opening
  */
 //virtual
 template <typename Connector, typename Locker>
-bool base_safe_connector<Connector, Locker>::do_open()
+bool base_safe_connector<Connector, Locker>::do_open(pconnector_type pconnector)
 {
     if (base_type::open_memory())
     {
@@ -677,7 +700,7 @@ bool base_safe_connector<Connector, Locker>::do_open()
             ptr += sizeof(locker_type);
             m_pbarrier = reinterpret_cast<barrier_type*>(ptr);
             scoped_lock_type lock(*m_plocker);
-            base_type::open_queue();
+            base_type::open_queue(pconnector);
             ++(*pcounter);
             return true;
         }

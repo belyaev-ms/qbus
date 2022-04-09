@@ -57,9 +57,23 @@ direction_type base_connector::type() const
 bool base_connector::create(const id_type cid, const size_t size,
         const struct timespec *pkeepalive_timeout)
 {
+    return create(cid, size, pkeepalive_timeout, pconnector_type());
+}
+
+/**
+ * Create the connector
+ * @param cid the identifier of the connector
+ * @param size the size of a queue
+ * @param pkeepalive_timeout the keep alive timeout of the connector
+ * @param pconnector the parent connector
+ * @return the result of the creating
+ */
+bool base_connector::create(const id_type cid, const size_t size,
+        const struct timespec *pkeepalive_timeout, pconnector_type pconnector)
+{
     if (!m_opened)
     {
-        m_opened = do_create(cid, size, pkeepalive_timeout);
+        m_opened = do_create(cid, size, pkeepalive_timeout, pconnector);
         return m_opened;
     }
     return false;
@@ -71,9 +85,19 @@ bool base_connector::create(const id_type cid, const size_t size,
  */
 bool base_connector::open()
 {
+    return open(pconnector_type());
+}
+
+/**
+ * Open the connector
+ * @param pconnector the parent connector
+ * @return the result of the opening
+ */
+bool base_connector::open(pconnector_type pconnector)
+{
     if (!m_opened)
     {
-        m_opened = do_open();
+        m_opened = do_open(pconnector);
         return m_opened;
     }
     return false;
@@ -255,21 +279,23 @@ shared_connector::shared_connector(const std::string& name, const direction_type
  * @param cid the identifier of the connector
  * @param size the size of a queue
  * @param pkeepalive_timeout the keep alive timeout of the connector
+ * @param pconnector the parent connector
  * @return the result of the creating
  */
 //virtual
 bool shared_connector::do_create(const id_type cid, const size_t size,
-    const struct timespec *pkeepalive_timeout)
+    const struct timespec *pkeepalive_timeout, pconnector_type pconnector)
 {
     return create_memory(size);
 }
 
 /**
  * Open the connector
+ * @param pconnector the parent connector
  * @return the result of the opening
  */
 //virtual
-bool shared_connector::do_open()
+bool shared_connector::do_open(pconnector_type pconnector)
 {
     return open_memory();
 }
