@@ -134,9 +134,9 @@ typename message<Queue>::message_desc_type
     region_type region;
     region_type *pprev_region = NULL;
     size_t rest = size;
-    size_t part = 0;
     while (rest > 0)
     {
+        size_t part = 0;
         do
         {
             region = queue.get_free_region(pprev_region);

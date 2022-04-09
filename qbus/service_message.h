@@ -27,7 +27,7 @@ public:
         CODE_DISCONNECT,
         CODE_COUNT
     };
-    uint32_t code() const
+    uint8_t code() const
     {
         return *reinterpret_cast<const uint8_t*>(Message::data());
     }

@@ -10,7 +10,7 @@ template <typename T>
 class rollback
 {
 public:
-    rollback(T& value) : 
+    explicit rollback(T& value) : 
         m_value(value),
         m_store(value)
     {}
