@@ -11,13 +11,34 @@ namespace message
 {
 
 /**
+ * Default implementation of `get_sid`
+ * @return the source identifier
+ */
+static sid_type default_get_sid_impl()
+{
+    static sid_type sid = getpid();
+    return sid;
+}
+
+/** Pointer to an implementation of `get_sid` */
+static get_sid_impl_type pget_sid_impl = default_get_sid_impl;
+
+/**
  * Get the source identifier
  * @return the source identifier
  */
 sid_type get_sid()
 {
-    static sid_type sid = getpid();
-    return sid;
+    return pget_sid_impl();
+}
+
+/**
+ * Initialize `get_sid`
+ * @param pfunc the pointer to an implementation of `get_sid`
+ */
+void init_get_sid(get_sid_impl_type pfunc)
+{
+    pget_sid_impl = pfunc;
 }
 
 /**

@@ -20,9 +20,11 @@ enum
 typedef uint32_t tag_type;
 typedef uint32_t flags_type;
 typedef pid_t sid_type;
+typedef sid_type (*get_sid_impl_type)(void);
 
 sid_type get_sid(); ///< get the source identifier
 size_t get_timestamp(); ///< get the current timestamp
+void init_get_sid(get_sid_impl_type pfunc); ///< initialize `get_sid`
 
 /**
  * The message
