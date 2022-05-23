@@ -269,7 +269,7 @@ bool base_queue::push(const tag_type tag, const void *data, const size_t size)
  * @return the next free region
  */
 //virtual
-typename base_queue::region_type base_queue::get_free_region(region_type *pprev_region) const
+base_queue::region_type base_queue::get_free_region(region_type *pprev_region) const
 {
     const size_t cpct = capacity();
     const pos_type hd = base_queue::head();
@@ -295,7 +295,7 @@ typename base_queue::region_type base_queue::get_free_region(region_type *pprev_
  * @return the next busy region
  */
 //virtual
-typename base_queue::region_type base_queue::get_busy_region(region_type *pprev_region) const
+base_queue::region_type base_queue::get_busy_region(region_type *pprev_region) const
 {
     const size_t cpct = capacity();
     const pos_type tl = tail();
@@ -350,7 +350,7 @@ bool base_queue::pop()
  * @param pprev_region the pointer to the previous busy region
  * @return the next busy region
  */
-typename base_queue::region_type base_queue::get_real_busy_region(region_type *pprev_region) const
+base_queue::region_type base_queue::get_real_busy_region(region_type *pprev_region) const
 {
     const size_t cpct = base_queue::capacity();
     const pos_type tl = base_queue::tail();
@@ -428,20 +428,20 @@ simple_queue::simple_queue(const id_type qid, void *ptr, const size_t cpct) :
  * Push new message to the queue
  * @param data the data of the message
  * @param size the size of data
- * @return the the message
+ * @return the description of the message
  */
 //virtual
-typename simple_queue::message_desc_type simple_queue::push_message(const void *data, const size_t size)
+simple_queue::message_desc_type simple_queue::push_message(const void *data, const size_t size)
 {
     return message_type::static_make_message(*this, data, size);
 }
 
 /**
  * Get a message from the queue
- * @return the the message
+ * @return the description of the message
  */
 //virtual
-typename simple_queue::message_desc_type simple_queue::get_message() const
+simple_queue::message_desc_type simple_queue::get_message() const
 {
     return message_type::static_get_message(*this);
 }
@@ -630,10 +630,10 @@ size_t base_shared_queue::clean()
  * Push new message to the queue
  * @param data the data of the message
  * @param size the size of data
- * @return the the message
+ * @return the description of the message
  */
 //virtual
-typename base_shared_queue::message_desc_type base_shared_queue::push_message(const void *data, const size_t size)
+base_shared_queue::message_desc_type base_shared_queue::push_message(const void *data, const size_t size)
 {
     message_desc_type message_desc = message_type::static_make_message(*this, data, size);
     if (message_desc.first)
@@ -646,10 +646,10 @@ typename base_shared_queue::message_desc_type base_shared_queue::push_message(co
 
 /**
  * Get a message from the queue
- * @return the the message
+ * @return the description of the message
  */
 //virtual
-typename base_shared_queue::message_desc_type base_shared_queue::get_message() const
+base_shared_queue::message_desc_type base_shared_queue::get_message() const
 {
     return message_type::static_get_message(*this);
 }
@@ -906,10 +906,10 @@ void smart_shared_queue::push_service_message(service_code_type code)
 
 /**
  * Get a message from the queue
- * @return the the message
+ * @return the description of the message
  */
 //virtual
-typename smart_shared_queue::message_desc_type smart_shared_queue::get_message() const
+smart_shared_queue::message_desc_type smart_shared_queue::get_message() const
 {
     do
     {
@@ -944,7 +944,7 @@ typename smart_shared_queue::message_desc_type smart_shared_queue::get_message()
  * @return the next free region
  */
 //virtual
-typename base_queue::region_type smart_shared_queue::get_free_region(region_type *pprev_region) const
+base_queue::region_type smart_shared_queue::get_free_region(region_type *pprev_region) const
 {
     region_type region = base_shared_queue::get_free_region(pprev_region);
     if (m_state != ST_PUSH_SPECIAL_MESSAGE)
