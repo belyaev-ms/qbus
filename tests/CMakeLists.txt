@@ -1,3 +1,4 @@
+add_definitions(-DQBUS_TEST_ENABLED)
 ################################################################################
 # Coverage
 ################################################################################
@@ -7,15 +8,32 @@ if (QBUS_COVERAGE_ENABLED)
 else (QBUS_COVERAGE_ENABLED)
     set(CMAKE_CXX_FLAGS "-g3")
 endif (QBUS_COVERAGE_ENABLED)
-
+################################################################################
+# Test library the QBUS
+################################################################################
+add_library(qbus_test STATIC
+    ../qbus/common.cpp
+    ../qbus/locker.cpp
+    ../qbus/queue.cpp
+    ../qbus/message.cpp
+    ../qbus/connector.cpp
+    ../qbus/bus.cpp
+    ../qbus/memory.cpp
+)
+target_link_libraries(qbus_test 
+    ${Boost_SYSTEM_LIBRARY}
+    pthread
+)
+if (NOT APPLE)
+    target_link_libraries(qbus_test rt)
+endif (NOT APPLE)
 ################################################################################
 # Unit-tests
 ################################################################################
-add_definitions(-DQBUS_TEST_ENABLED)
 #macros for add an tool
 macro(qbus_add_tool tool)
     add_executable(${tool} ${tool}.cpp)
-    target_link_libraries(${tool} qbus)
+    target_link_libraries(${tool} qbus_test)
 endmacro(qbus_add_tool)
 #macros for add an unit-test
 macro(qbus_add_test test)
@@ -26,7 +44,7 @@ macro(qbus_add_test test)
         ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
         ${Boost_THREAD_LIBRARY} 
         pthread
-        qbus
+        qbus_test
     )
     add_test(${test} ${test})
 endmacro(qbus_add_test)
