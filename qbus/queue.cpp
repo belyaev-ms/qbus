@@ -36,6 +36,7 @@ base_queue::base_queue(const id_type qid, void *ptr, const size_t cpct) :
 {
     id(qid);
     capacity(cpct);
+    keepalive_timeout(0);
     clear();
 }
 
@@ -184,7 +185,6 @@ void base_queue::clear()
     head(0);
     tail(0);
     count(0);
-    keepalive_timeout(0);
 }
 
 /**
