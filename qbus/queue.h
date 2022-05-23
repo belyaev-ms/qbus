@@ -40,7 +40,7 @@ public:
     virtual size_t count() const; ///< get the count of messages
     bool empty() const; ///< check the queue is empty 
     void clear(); ///< clear the queue
-    virtual size_t clean(); ///< collect garbage
+    size_t clean(); ///< collect garbage
     virtual size_t size() const; ///< get the size of the queue
     static size_t static_size(const size_t cpct)
     {
@@ -64,6 +64,7 @@ protected:
         DATA_OFFSET       = TAIL_OFFSET + TAIL_SIZE,
         HEADER_SIZE       = DATA_OFFSET
     };
+    typedef std::pair<size_t, size_t> garbage_info_type; ///< the pair of : { number of cleaned messages, its total size }
     void id(const id_type value); ///< set the identifier of the queue
     virtual pos_type head() const; /// get the head of the queue
     void head(const pos_type value); /// set the head of the queue
@@ -71,6 +72,7 @@ protected:
     void tail(const pos_type value); /// set the tail of the queue
     void count(const size_t value); ///< set the count of messages
     void *data(const pos_type pos = 0) const; ///< get the pointer to data region of the queue
+    virtual garbage_info_type clean_messages(); ///< collect garbage
     virtual message_desc_type push_message(const void *data, const size_t size) = 0; ///< push new message to the queue
     virtual message_desc_type get_message() const = 0; ///< get a message from the queue
     virtual void pop_message(const message_desc_type& message_desc) = 0; ///< pop a message from the queue
@@ -125,7 +127,6 @@ public:
     base_shared_queue(const id_type qid, void *ptr, const size_t cpct);
     virtual size_t count() const; ///< get the count of messages
     virtual size_t size() const; ///< get the size of the queue 
-    virtual size_t clean(); ///< collect garbage
     static size_t static_size(const size_t cpct)
     {
         return HEADER_SIZE + base_queue::static_size(cpct);
@@ -146,6 +147,7 @@ protected:
     uint32_t counter() const; ///< get the counter of pushed messages
     void counter(const uint32_t value); ///< set the counter of pushed messages
     virtual pos_type head() const; /// get the head of the queue
+    virtual garbage_info_type clean_messages(); ///< collect garbage
     virtual message_desc_type push_message(const void *data, const size_t size); ///< push new message to the queue
     virtual message_desc_type get_message() const; ///< get a message from the queue
     virtual void pop_message(const message_desc_type& message_desc); ///< pop a message from the queue
@@ -177,7 +179,8 @@ class unreadable_shared_queue : public base_shared_queue
 public:
     explicit unreadable_shared_queue(void *ptr);
     unreadable_shared_queue(const id_type qid, void *ptr, const size_t cpct);
-    virtual size_t clean(); ///< collect garbage
+protected:
+    virtual garbage_info_type clean_messages(); ///< collect garbage
 };
 
 /**
@@ -222,10 +225,27 @@ public:
     explicit smart_shared_queue(void *ptr);
     smart_shared_queue(const id_type qid, void *ptr, const size_t cpct);
     virtual ~smart_shared_queue();
+    virtual size_t size() const; ///< get the size of the queue 
+    static size_t static_size(const size_t cpct)
+    {
+        return HEADER_SIZE + base_shared_queue::static_size(cpct);
+    }
 protected:
     smart_shared_queue(void *ptr, pqueue_type pqueue);
     smart_shared_queue(const id_type qid, void *ptr, const size_t cpct, pqueue_type pqueue);
+    enum
+    {
+        FREE_SPACE_OFFSET = 0,
+        FREE_SPACE_SIZE   = sizeof(uint32_t),
+        HEADER_SIZE       = FREE_SPACE_OFFSET + FREE_SPACE_SIZE,
+    };
     void initialize(); ///< initialize the queue
+    size_t free_space() const; ///< get the free space of the queue
+    void free_space(const size_t value); ///< set the free space of the queue
+    size_t inc_free_space(const size_t value); ///< increase the free space of the queue
+    size_t dec_free_space(const size_t value); ///< reduce the the free space of the queue
+    virtual garbage_info_type clean_messages(); ///< collect garbage
+    virtual message_desc_type push_message(const void *data, const size_t size); ///< push new message to the queue
     virtual message_desc_type get_message() const; ///< get a message from the queue
     void push_service_message(service_code_type code); ///< push a service message to the queue
     virtual region_type get_free_region(region_type *pprev_region = NULL) const; ///< get the next free region
@@ -235,7 +255,8 @@ private:
         ST_UNKNOWN,
         ST_PUSH_SPECIAL_MESSAGE
     };
-    state_type m_state;
+    uint8_t *m_ptr; ///< the pointer to the raw queue
+    state_type m_state; ///< the current state of the queue
 };
 
 template < >

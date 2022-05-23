@@ -201,10 +201,19 @@ size_t base_queue::size() const
  * Collect garbage
  * @return the number of cleaned messages
  */
-//virtual 
 size_t base_queue::clean()
 {
-    return 0;
+    return clean_messages().first;
+}
+
+/**
+ * Collect garbage
+ * @return the information about collected garbage
+ */
+//virtual
+base_queue::garbage_info_type base_queue::clean_messages()
+{
+    return garbage_info_type();
 }
 
 /**
@@ -216,7 +225,7 @@ size_t base_queue::clean()
  */
 bool base_queue::do_push(const tag_type tag, const void *data, const size_t size)
 {
-    clean();
+    clean_messages();
     message_desc_type message_desc = push_message(data, size);
     if (message_desc.first)
     {
@@ -598,10 +607,10 @@ size_t base_shared_queue::count() const
 
 /**
  * Collect garbage
- * @return the number of cleaned messages
+ * @return the information about collected garbage
  */
 //virtual 
-size_t base_shared_queue::clean()
+base_shared_queue::garbage_info_type base_shared_queue::clean_messages()
 {
     size_t cnt = base_queue::count();
     if (cnt > 0)
@@ -610,7 +619,7 @@ size_t base_shared_queue::clean()
         rollback<uint32_t> counter(m_counter);
         m_head = pos_type(-1);
         --m_counter;
-        size_t count = 0;
+        garbage_info_type garbage_info;
         while (cnt-- > 0)
         {
             const message_desc_type message_desc = base_shared_queue::get_message();
@@ -620,11 +629,12 @@ size_t base_shared_queue::clean()
             }
             base_queue::head(message_desc.second);
             base_queue::count(cnt);
-            ++count;
+            ++garbage_info.first;
+            garbage_info.second += message_desc.first->total_size();
         }
-        return count;
+        return garbage_info;
     }
-    return 0;
+    return garbage_info_type();
 }
 
 /**
@@ -751,14 +761,14 @@ unreadable_shared_queue::unreadable_shared_queue(const id_type qid, void *ptr, c
 
 /**
  * Collect garbage
- * @return the number of cleaned messages
+ * @return the information about collected garbage
  */
 //virtual 
-size_t unreadable_shared_queue::clean()
+unreadable_shared_queue::garbage_info_type unreadable_shared_queue::clean_messages()
 {
-    const size_t count = base_shared_queue::clean();
-    m_counter += count;
-    return count;
+    garbage_info_type garbage_info = base_shared_queue::clean_messages();
+    m_counter += garbage_info.first;
+    return garbage_info;
 }
 
 //==============================================================================
@@ -769,7 +779,8 @@ size_t unreadable_shared_queue::clean()
  * @param ptr the pointer to the header of the queue
  */
 smart_shared_queue::smart_shared_queue(void *ptr) : 
-    base_shared_queue(ptr),
+    base_shared_queue(reinterpret_cast<uint8_t*>(ptr) + HEADER_SIZE),
+    m_ptr(reinterpret_cast<uint8_t*>(ptr)),
     m_state(ST_UNKNOWN)
 {
     initialize();
@@ -782,9 +793,11 @@ smart_shared_queue::smart_shared_queue(void *ptr) :
  * @param cpct the capacity of the queue
  */
 smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_t cpct) : 
-    base_shared_queue(qid, ptr, cpct),
+    base_shared_queue(qid, reinterpret_cast<uint8_t*>(ptr) + HEADER_SIZE, cpct),
+    m_ptr(reinterpret_cast<uint8_t*>(ptr)),
     m_state(ST_UNKNOWN)
 {
+    free_space(capacity());
     initialize();
 }
 
@@ -794,7 +807,8 @@ smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_
  * @param pqueue the parent queue
  */
 smart_shared_queue::smart_shared_queue(void *ptr, pqueue_type pqueue) :
-    base_shared_queue(ptr),
+    base_shared_queue(reinterpret_cast<uint8_t*>(ptr) + HEADER_SIZE),
+    m_ptr(reinterpret_cast<uint8_t*>(ptr)),
     m_state(ST_UNKNOWN)
 {
     if (!pqueue)
@@ -833,10 +847,15 @@ smart_shared_queue::smart_shared_queue(void *ptr, pqueue_type pqueue) :
  */
 smart_shared_queue::smart_shared_queue(const id_type qid, void *ptr, const size_t cpct,
         pqueue_type pqueue) :
-    base_shared_queue(qid, ptr, cpct),
+    base_shared_queue(qid, reinterpret_cast<uint8_t*>(ptr) + HEADER_SIZE, cpct),
+    m_ptr(reinterpret_cast<uint8_t*>(ptr)),
     m_state(ST_UNKNOWN)
 {
-    if (pqueue)
+    if (!pqueue)
+    {
+        free_space(capacity());
+    }
+    else
     {
         smart_shared_queue *pq = dynamic_cast<smart_shared_queue*>(pqueue.get());
         assert(pq != NULL);
@@ -865,6 +884,44 @@ void smart_shared_queue::initialize()
 }
 
 /**
+ * Get the free space of the queue
+ * @return the free space of the queue
+ */
+size_t smart_shared_queue::free_space() const
+{
+    return boost::interprocess::ipcdetail::atomic_read32(reinterpret_cast<uint32_t*>(m_ptr + FREE_SPACE_OFFSET));
+}
+
+/**
+ * Set the free space of the queue
+ * @param value the free space of the queue
+ */
+void smart_shared_queue::free_space(const size_t value)
+{
+    boost::interprocess::ipcdetail::atomic_write32(reinterpret_cast<uint32_t*>(m_ptr + FREE_SPACE_OFFSET), value);
+}
+
+/**
+ * Increase the free space of the queue
+ * @param value the value by which the free space is increased
+ * @return the free space of the queue
+ */
+size_t smart_shared_queue::inc_free_space(const size_t value)
+{
+    return boost::interprocess::ipcdetail::atomic_add32(reinterpret_cast<uint32_t*>(m_ptr + FREE_SPACE_OFFSET), value) + value;
+}
+
+/**
+ * Reduce the free space of the queue
+ * @param value the value by which the free space is reduced
+ * @return the free space of the queue
+ */
+size_t smart_shared_queue::dec_free_space(const size_t value)
+{
+    return boost::interprocess::ipcdetail::atomic_add32(reinterpret_cast<uint32_t*>(m_ptr + FREE_SPACE_OFFSET), -value) - value;
+}
+
+/**
  * Destructor
  */
 //virtual
@@ -890,6 +947,16 @@ smart_shared_queue::~smart_shared_queue()
 }
 
 /**
+ * Get the size of the queue
+ * @return the size of the queue
+ */
+//virtual
+size_t smart_shared_queue::size() const
+{
+    return static_size(capacity());
+}
+
+/**
  * Push a service message to the queue
  * @param code the service code
  */
@@ -903,6 +970,39 @@ void smart_shared_queue::push_service_message(service_code_type code)
     {
         boost::detail::yield(k++);
     }
+}
+
+/**
+ * Collect garbage
+ * @return the information about collected garbage
+ */
+//virtual
+smart_shared_queue::garbage_info_type smart_shared_queue::clean_messages()
+{
+    garbage_info_type garbage_info = base_shared_queue::clean_messages();
+    if (garbage_info.first > 0)
+    {
+        inc_free_space(garbage_info.second);
+    }
+    return garbage_info;
+}
+
+/**
+ * Push new message to the queue
+ * @param data the data of the message
+ * @param size the size of data
+ * @return the description of the message
+ */
+//virtual
+smart_shared_queue::message_desc_type smart_shared_queue::push_message(const void *data, const size_t size)
+{
+    message_desc_type message_desc = base_shared_queue::push_message(data, size);
+    if (message_desc.first)
+    {
+        const size_t message_size = message_desc.first->total_size();
+        dec_free_space(message_size);
+    }
+    return message_desc;
 }
 
 /**
@@ -947,14 +1047,22 @@ smart_shared_queue::message_desc_type smart_shared_queue::get_message() const
 //virtual
 base_queue::region_type smart_shared_queue::get_free_region(region_type *pprev_region) const
 {
-    region_type region = base_shared_queue::get_free_region(pprev_region);
+    region_type base_region = base_shared_queue::get_free_region(pprev_region);
     if (m_state != ST_PUSH_SPECIAL_MESSAGE)
     {
         size_t size = region.second + (pprev_region ? pprev_region->second : 0);
         return size < 2 * service_message_type::static_size(1) * subscriptions_count() ?
             region_type(region.first, 0) : region;
     }
-    return region;
+        const size_t reserved_space = 2 * service_message_type::static_size(1) * subscriptions_count();
+        const size_t available_space = free_space() - reserved_space;
+        size_t size = base_region.second + (pprev_region ? pprev_region->second : 0);
+        if (size > available_space)
+        {
+            base_region.second -= size - available_space;
+        }
+    }
+    return base_region;
 }
 
 } //namespace queue
