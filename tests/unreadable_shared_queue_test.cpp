@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(one_producer_and_one_consumer_test)
     const queue::id_type id = 1;
     const size_t message_size = message::base_message::static_capacity(32);
     buffer_t memory(queue::shared_queue::static_size(capacity));
-    queue::unreadable_shared_queue producer_queue(0, &memory[0], capacity);
+    queue::unreadable_shared_queue producer_queue(id, &memory[0], capacity);
     queue::shared_queue consumer_queue(&memory[0]);
     buffer_t buffer = make_buffer(message_size);
     size_t count = capacity / message::base_message::static_size(message_size);
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(one_producer_and_one_consumer_test)
         BOOST_REQUIRE(pmessage);
         BOOST_REQUIRE_EQUAL(pmessage->data_size(), buffer.size());
         consumer_queue.pop();
-        BOOST_REQUIRE_EQUAL(consumer_queue.count(), 31 - i);
+        BOOST_REQUIRE_EQUAL(consumer_queue.count(), count - i - 1);
     }
     for (size_t i = 0; i < count; ++i)
     {
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(one_producer_and_many_consumers_test)
     const queue::id_type id = 1;
     const size_t message_size = message::base_message::static_capacity(32);
     buffer_t memory(queue::shared_queue::static_size(capacity));
-    queue::unreadable_shared_queue producer_queue(0, &memory[0], capacity);
+    queue::unreadable_shared_queue producer_queue(id, &memory[0], capacity);
     queue::shared_queue consumer_queue1(&memory[0]);
     queue::shared_queue consumer_queue2(&memory[0]);
 
