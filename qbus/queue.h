@@ -128,7 +128,7 @@ public:
     virtual size_t clean(); ///< collect garbage
     static size_t static_size(const size_t cpct)
     {
-        return HEADER_SIZE + base_queue::HEADER_SIZE + cpct;
+        return HEADER_SIZE + base_queue::static_size(cpct);
     }
 protected:
     enum
