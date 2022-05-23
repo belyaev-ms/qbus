@@ -509,6 +509,7 @@ base_shared_queue::base_shared_queue(const id_type qid, void *ptr, const size_t 
     m_counter(0)
 {
     counter(0);
+    subscriptions_count(0);
 }
 
 /**
