@@ -1050,10 +1050,6 @@ base_queue::region_type smart_shared_queue::get_free_region(region_type *pprev_r
     region_type base_region = base_shared_queue::get_free_region(pprev_region);
     if (m_state != ST_PUSH_SPECIAL_MESSAGE)
     {
-        size_t size = region.second + (pprev_region ? pprev_region->second : 0);
-        return size < 2 * service_message_type::static_size(1) * subscriptions_count() ?
-            region_type(region.first, 0) : region;
-    }
         const size_t reserved_space = 2 * service_message_type::static_size(1) * subscriptions_count();
         const size_t available_space = free_space() - reserved_space;
         size_t size = base_region.second + (pprev_region ? pprev_region->second : 0);
