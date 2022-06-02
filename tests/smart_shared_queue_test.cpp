@@ -367,3 +367,84 @@ BOOST_AUTO_TEST_CASE(one_producer_and_many_consumers_test)
         BOOST_REQUIRE_EQUAL(consumer_queue2.count(), 0);
     }
 }
+
+BOOST_AUTO_TEST_CASE(many_producers_and_many_consumers_test)
+{
+    pmessage_type pmessage;
+
+    const size_t reserved_size = 6 * message::base_message::static_size(1);
+    const size_t capacity = 1024 + reserved_size;
+    const queue::id_type id = 1;
+    const size_t message_size = message::base_message::static_capacity(32);
+    buffer_t memory(test_queue::static_size(capacity));
+    test_queue queue1(id, &memory[0], capacity);
+    test_queue queue2(&memory[0]);
+    test_queue queue3(&memory[0]);
+    buffer_t buffer = make_buffer(message_size);
+    size_t count = (capacity - reserved_size) / message::base_message::static_size(message_size);
+    BOOST_REQUIRE(!queue1.get()); // service message is unreadable
+    BOOST_REQUIRE(!queue2.get()); // service message is unreadable
+    BOOST_REQUIRE(!queue3.get()); // service message is unreadable
+    BOOST_REQUIRE(queue1.empty());
+    BOOST_REQUIRE(queue2.empty());
+    BOOST_REQUIRE(queue3.empty());
+    test_queue *queues[] = { &queue1, &queue2, &queue3 };
+
+    BOOST_TEST_MESSAGE("push " << 5 * count << " messages each a size = " << message_size);
+    size_t k = 0;
+    for (size_t i = 0; i < count; ++i)
+    {
+        BOOST_TEST_MESSAGE("push " << i + 1 << "/" << count << " a message");
+        BOOST_REQUIRE(queues[k]->push(0, &buffer[0], buffer.size()));
+        BOOST_REQUIRE(!queues[k]->get());
+        BOOST_REQUIRE(queues[k]->empty());
+        for (size_t j = 0; j < 3; ++j)
+        {
+            if (j != k)
+            {
+                BOOST_REQUIRE_EQUAL(queues[j]->count(), 1);
+                pmessage = queues[j]->get();
+                BOOST_REQUIRE_EQUAL(queues[j]->count(), 1);
+                BOOST_REQUIRE(pmessage);
+                BOOST_REQUIRE_EQUAL(pmessage->data_size(), buffer.size());
+                queues[j]->pop();
+                BOOST_REQUIRE_EQUAL(queues[j]->count(), 0);
+            }
+        }
+    }
+}
+
+BOOST_AUTO_TEST_CASE(connect_and_disconect_to_overflow_queue_test)
+{
+    pmessage_type pmessage;
+
+    const size_t reserved_size = 4 * message::base_message::static_size(1);
+    const size_t capacity = 1024 + reserved_size;
+    const queue::id_type id = 1;
+    const size_t message_size = message::base_message::static_capacity(32);
+    buffer_t memory(test_queue::static_size(capacity));
+    test_queue queue1(id, &memory[0], capacity);
+    test_queue queue2(&memory[0]);
+    buffer_t buffer = make_buffer(message_size);
+    size_t count = (capacity - reserved_size) / message::base_message::static_size(message_size);
+    BOOST_REQUIRE(!queue1.get()); // service message is unreadable
+    BOOST_REQUIRE(!queue2.get()); // service message is unreadable
+    BOOST_REQUIRE(queue1.empty());
+    BOOST_REQUIRE(queue2.empty());
+
+    BOOST_TEST_MESSAGE("push " << count << " messages each a size = " << message_size);
+    for (size_t i = 0; i < count; ++i)
+    {
+        BOOST_TEST_MESSAGE("push " << i + 1 << "/" << count << " a message");
+        BOOST_REQUIRE(queue1.push(0, &buffer[0], buffer.size()));
+        BOOST_REQUIRE(!queue1.get());
+    }
+
+    BOOST_TEST_MESSAGE("error of pushing " << count + 1 << " a message");
+    BOOST_REQUIRE(!queue1.push(0, &buffer[0], buffer.size()));
+
+    BOOST_TEST_MESSAGE("connect and disconnect another client to the overflow queue");
+    {
+        test_queue queue3(&memory[0]);
+    }
+}
