@@ -69,6 +69,8 @@ protected:
     virtual controlblock_type& get_controlblock() const = 0; ///< get the control block of the bus
     virtual bool add_connector() const; ///< add new connector to the bus
     virtual bool remove_connector() const; ///< remove the back connector from the bus
+    bool can_add_connector() const; ///< check if a new connector can be added
+    bool can_remove_connector() const; ///< check if the back connector can be removed
 private:
     virtual pconnector_type make_connector(const std::string& name) const = 0; ///< make new connector
     pconnector_type make_connector(const id_type id) const; ///< make new connector

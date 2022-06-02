@@ -109,25 +109,42 @@ pconnector_type base_bus::make_connector(const id_type id) const
 }
 
 /**
- * Add new connector to the bus
+ * Check if a new connector can be added
+ * @return result of the checking
+ */
+bool base_bus::can_add_connector() const
+{
+    controlblock_type& cb = get_controlblock();
+    return cb.output_id + 1 != cb.input_id;
+}
+
+/**
+ * Add a new connector to the bus
  * @return result of the adding
  */
 //virtual
 bool base_bus::add_connector() const
 {
     controlblock_type& cb = get_controlblock();
-    if (cb.output_id + 1 != cb.input_id)
+    pconnector_type pconnector = make_connector(cb.output_id + 1);
+    if (pconnector)
     {
-        pconnector_type pconnector = make_connector(cb.output_id + 1);
-        if (pconnector)
-        {
-            m_pconnectors.push_front(pconnector);
-            ++cb.output_id;
-            ++cb.epoch;
-            return true;
-        }
+        m_pconnectors.push_front(pconnector);
+        ++cb.output_id;
+        ++cb.epoch;
+        return true;
     }
     return false;
+}
+
+/**
+ * Check if the back connector can be removed
+ * @return result of the checking
+ */
+bool base_bus::can_remove_connector() const
+{
+    controlblock_type& cb = get_controlblock();
+    return cb.input_id != cb.output_id;
 }
 
 /**
@@ -137,24 +154,20 @@ bool base_bus::add_connector() const
 //virtual
 bool base_bus::remove_connector() const
 {
+    m_pconnectors.pop_back();
     controlblock_type& cb = get_controlblock();
-    if (cb.input_id != cb.output_id)
+    ++cb.input_id;
+    ++cb.epoch;
+    if (m_pconnectors.empty())
     {
-        m_pconnectors.pop_back();
-        ++cb.input_id;
-        ++cb.epoch;
-        if (m_pconnectors.empty())
+        pconnector_type pconnector = make_connector(cb.input_id);
+        if (!pconnector)
         {
-            pconnector_type pconnector = make_connector(cb.input_id);
-            if (!pconnector)
-            {
-                return false;
-            }
-            m_pconnectors.push_back(pconnector);
+            return false;
         }
-        return true;
+        m_pconnectors.push_back(pconnector);
     }
-    return false;
+    return true;
 }
 
 /**
@@ -197,7 +210,7 @@ bool base_bus::push(const tag_type tag, const void *data, const size_t size)
     {
         while (!do_push(tag, data, size))
         {
-            if (!add_connector())
+            if (!can_add_connector() || !add_connector())
             {
                 return false;
             }
@@ -222,7 +235,7 @@ bool base_bus::push(const tag_type tag, const void *data, const size_t size,
     {
         while (!do_timed_push(tag, data, size, timeout))
         {
-            if (!add_connector())
+            if (!can_add_connector() || !add_connector())
             {
                 return false;
             }
@@ -241,7 +254,7 @@ const pmessage_type base_bus::get() const
     if (m_opened)
     {
         pmessage_type pmessage = do_get();
-        while (!pmessage && remove_connector())
+        while (!pmessage && can_remove_connector() && remove_connector())
         {
             pmessage = do_get();
         }
@@ -260,7 +273,7 @@ const pmessage_type base_bus::get(const struct timespec& timeout) const
     if (m_opened)
     {
         pmessage_type pmessage = do_timed_get(timeout);
-        while (!pmessage && remove_connector())
+        while (!pmessage && can_remove_connector() && remove_connector())
         {
             pmessage = do_timed_get(timeout);
         }
@@ -279,7 +292,7 @@ bool base_bus::pop()
     {
         while (!do_pop())
         {
-            if (!remove_connector())
+            if (!can_remove_connector() || !remove_connector())
             {
                 return false;
             }
@@ -300,7 +313,7 @@ bool base_bus::pop(const struct timespec& timeout)
     {
         while (!do_timed_pop(timeout))
         {
-            if (!remove_connector())
+            if (!can_remove_connector() || !remove_connector())
             {
                 return false;
             }
@@ -712,7 +725,7 @@ shared_bus::update_status shared_bus::update_connectors() const
             m_status = US_OUTPUT;
             while (output_id != m_controlblock.output_id)
             {
-                if (!add_connector())
+                if (!can_add_connector() || !add_connector())
                 {
                     return US_NONE; ///@todo need to improve this situations! it's wrong decision!!!
                 }
@@ -722,7 +735,7 @@ shared_bus::update_status shared_bus::update_connectors() const
         if (input_id != m_controlblock.input_id)
         {
             m_status = US_OUTPUT == m_status ? US_BOTH : US_INPUT;
-            if (!remove_connector())
+            if (!can_remove_connector() || !remove_connector())
             {
                 return US_NONE; ///@todo need to improve this situations! it's wrong decision!!!
             }
