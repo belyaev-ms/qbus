@@ -79,6 +79,7 @@ public:
         mock();
         return base_type::pop();
     }
+    using Queue::subscriptions_count;
 };
 
 typedef sid_mocker_queue<queue::smart_shared_queue> test_queue;
@@ -447,4 +448,19 @@ BOOST_AUTO_TEST_CASE(connect_and_disconect_to_overflow_queue_test)
     {
         test_queue queue3(&memory[0]);
     }
+}
+
+BOOST_AUTO_TEST_CASE(queue_subscriptions_count_test)
+{
+    const size_t capacity = 1024;
+    const queue::id_type id = 1;
+    buffer_t queue_buffer = make_buffer(queue::shared_queue::static_size(capacity));
+    test_queue queue1(id, &queue_buffer[0], capacity);
+    BOOST_REQUIRE_EQUAL(queue1.subscriptions_count(), 1);
+    {
+        test_queue queue2(&queue_buffer[0]);
+        BOOST_REQUIRE_EQUAL(queue1.subscriptions_count(), 2);
+        BOOST_REQUIRE_EQUAL(queue2.subscriptions_count(), 2);
+    }
+    BOOST_REQUIRE_EQUAL(queue1.subscriptions_count(), 1);
 }

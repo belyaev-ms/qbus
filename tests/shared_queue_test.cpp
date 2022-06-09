@@ -333,3 +333,29 @@ BOOST_AUTO_TEST_CASE(one_producer_and_many_consumers_test)
         BOOST_REQUIRE_EQUAL(consumer_queue2.count(), 0);
     }
 }
+
+struct test_queue : public queue::shared_queue
+{
+    explicit test_queue(void *ptr) :
+        queue::shared_queue(ptr)
+    {}
+    test_queue(const queue::id_type qid, void *ptr, const size_t cpct) :
+        queue::shared_queue(qid, ptr, cpct)
+    {}
+    using queue::shared_queue::subscriptions_count;
+};
+
+BOOST_AUTO_TEST_CASE(queue_subscriptions_count_test)
+{
+    const size_t capacity = 1024;
+    const queue::id_type id = 1;
+    buffer_t queue_buffer = make_buffer(queue::shared_queue::static_size(capacity));
+    test_queue queue1(id, &queue_buffer[0], capacity);
+    BOOST_REQUIRE_EQUAL(queue1.subscriptions_count(), 1);
+    {
+        test_queue queue2(&queue_buffer[0]);
+        BOOST_REQUIRE_EQUAL(queue1.subscriptions_count(), 2);
+        BOOST_REQUIRE_EQUAL(queue2.subscriptions_count(), 2);
+    }
+    BOOST_REQUIRE_EQUAL(queue1.subscriptions_count(), 1);
+}
