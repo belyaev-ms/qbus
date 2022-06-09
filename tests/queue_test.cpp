@@ -209,7 +209,7 @@ BOOST_AUTO_TEST_CASE(one_producer_and_one_consumer_test)
     const queue::id_type id = 1;
     const size_t message_size = message::base_message::static_capacity(32);
     buffer_t memory(queue::simple_queue::static_size(capacity));
-    queue::simple_queue producer_queue(0, &memory[0], capacity);
+    queue::simple_queue producer_queue(id, &memory[0], capacity);
     queue::simple_queue consumer_queue(&memory[0]);
 
     buffer_t buffer = make_buffer(message_size);

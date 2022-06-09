@@ -143,7 +143,7 @@ bool base_bus::add_connector() const
  */
 bool base_bus::can_remove_connector() const
 {
-    controlblock_type& cb = get_controlblock();
+    const controlblock_type& cb = get_controlblock();
     return cb.input_id != cb.output_id;
 }
 
