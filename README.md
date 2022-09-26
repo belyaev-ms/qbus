@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/belyaev-ms/dmux.svg?branch=master)](https://travis-ci.com/belyaev-ms/dmux)
+[![Build and Test](https://github.com/belyaev-ms/dmux/actions/workflows/build_and_test.yml/badge.svg)](https://github.com/belyaev-ms/dmux/actions/workflows/build_and_test.yml)
 [![codecov](https://codecov.io/gh/belyaev-ms/dmux/branch/master/graph/badge.svg)](https://codecov.io/gh/belyaev-ms/dmux)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
