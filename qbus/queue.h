@@ -92,6 +92,7 @@ private:
 #endif
 private:
     uint8_t *m_ptr; ///< the pointer to the raw queue
+    mutable message_desc_type m_message_desc; ///< description of the currently pulled message
 };
 
 typedef base_queue queue_type;

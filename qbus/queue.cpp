@@ -332,8 +332,8 @@ const pmessage_type base_queue::get() const
 {
     if (count() > 0)
     {
-        pmessage_type pmessage = get_message().first;
-        return pmessage;
+        m_message_desc = get_message();
+        return m_message_desc.first;
     }
     return pmessage_type();
 }
@@ -346,8 +346,12 @@ bool base_queue::pop()
 {
     if (count() > 0)
     {
-        const message_desc_type message_desc = get_message();
-        pop_message(message_desc);
+        if (!m_message_desc.first)
+        {
+            m_message_desc = get_message();
+        }
+        pop_message(m_message_desc);
+        m_message_desc.first.reset();
         return true;
     }
     return false;
