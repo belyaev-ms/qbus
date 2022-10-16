@@ -316,6 +316,7 @@ class safe_connector<Connector, Locker, true> : public base_safe_connector<Conne
     typedef typename base_type::lock_to_pop_type lock_to_pop_type;
 public:
     explicit safe_connector(const std::string& name);
+    virtual bool do_push(const tag_type tag, const void *data, const size_t size); ///< push data to the connector
     virtual bool do_timed_push(const tag_type tag, const void *data, const size_t size, const struct timespec& timeout); ///< push data to the connector
     virtual const pmessage_type do_timed_get(const struct timespec& timeout) const; ///< get the next message from the connector
     virtual bool do_timed_pop(const struct timespec& timeout); ///< remove the next message from the connector
@@ -819,6 +820,27 @@ template <typename Connector, typename Locker>
 safe_connector<Connector, Locker, true>::safe_connector(const std::string& name) :
     base_type(name)
 {
+}
+
+/**
+ * Push data to the connector
+ * @param tag the tag of the data
+ * @param data the data
+ * @param size the size of the data
+ * @return result of the pushing
+ */
+//virtual
+template <typename Connector, typename Locker>
+bool safe_connector<Connector, Locker, true>::do_push(const tag_type tag, 
+    const void *data, const size_t size)
+{
+    lock_to_push_type lock(base_type::locker());
+    if (lock.owns() && base_type::do_push(tag, data, size))
+    {
+        base_type::barrier().open();
+        return true;
+    }
+    return false;
 }
 
 /**
