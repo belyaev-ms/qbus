@@ -329,5 +329,64 @@ void *shared_connector::get_memory() const
     return m_memory.get();
 }
 
+//==============================================================================
+//  sharable_barrier
+//==============================================================================
+/**
+ * Get size of the barrier
+ * @return size of the barrier
+ */
+//static
+size_t sharable_barrier::barrier_size()
+{
+    return sizeof(barrier_type);
+}
+
+/**
+ * Constructor
+ */
+sharable_barrier::sharable_barrier() :
+    m_pbarrier(NULL)
+{}
+
+/**
+ * Get the barrier
+ * @return the barrier
+ */
+sharable_barrier::barrier_type& sharable_barrier::barrier() const
+{
+    return *m_pbarrier;
+}
+
+/**
+ * Create the barrier
+ * @param ptr pointer to the place where this barrier will be built
+ * @return pointer to memory region after this barrier
+ */
+void *sharable_barrier::create_barrier(void *ptr)
+{
+    m_pbarrier = new (ptr) barrier_type();
+    return reinterpret_cast<uint8_t*>(ptr) + sizeof(barrier_type);
+}
+
+/**
+ * Open the barrier
+ * @param ptr pointer to the place where this barrier is located
+ * @return pointer to memory region after this barrier
+ */
+void *sharable_barrier::open_barrier(void *ptr)
+{
+    m_pbarrier = reinterpret_cast<barrier_type*>(ptr);;
+    return reinterpret_cast<uint8_t*>(ptr) + sizeof(barrier_type);
+}
+
+/**
+ * Free the barrier
+ */
+void sharable_barrier::free_barrier()
+{
+    m_pbarrier->~barrier_type();
+}
+
 } //namespace connector
 } //namespace qbus

@@ -181,7 +181,7 @@ struct base_locker_interface
 };
 
 /**
- * The sharable locker based on boost::interprocess_upgradable_mutex
+ * The sharable locker interface based on boost::interprocess_upgradable_mutex
  */
 class sharable_locker_interface : public base_locker_interface<false>
 {
@@ -210,7 +210,7 @@ public:
 };
 
 /**
- * The sharable locker to a connector that has a sharable pop operation
+ * The sharable locker interface to a connector that has a sharable pop operation
  */
 class sharable_locker_with_sharable_pop_interface : public sharable_locker_interface
 {
@@ -221,7 +221,7 @@ public:
 };
 
 /**
- * The sharable spin locker
+ * The sharable spin locker interface
  */
 class sharable_spinlocker_interface : public base_locker_interface<true>
 {
@@ -235,7 +235,7 @@ public:
 };
 
 /**
- * The sharable spin locker to a connector that has a sharable pop operation
+ * The sharable spin locker interface to a connector that has a sharable pop operation
  */
 class sharable_spinlocker_with_sharable_pop_interface : public base_locker_interface<true>
 {
@@ -249,14 +249,44 @@ public:
 };
 
 /**
+ * The sharable barrier 
+ */
+class sharable_barrier
+{
+public:
+    typedef shared_barrier barrier_type;
+    sharable_barrier();
+    barrier_type& barrier() const; ///< get the barrier
+    void *create_barrier(void *ptr); ///< create the barrier
+    void *open_barrier(void *ptr); ///< open the barrier
+    void free_barrier(); ///< free the barrier
+    static size_t barrier_size(); ///< get size of the barrier
+protected:
+    mutable barrier_type *m_pbarrier; ///< pointer to the barrier
+};
+
+/**
+ * The stub barrier
+ */
+class stub_barrier
+{
+public:
+    typedef void barrier_type;
+    void barrier() const {}
+    void *create_barrier(void *ptr) { return ptr; }
+    void *open_barrier(void *ptr) { return ptr; }
+    void free_barrier() {}
+    static size_t barrier_size() { return 0; }
+};
+
+/**
  * The base safe connector for inter process communications
  */
-template <typename Connector, typename Locker>
-class base_safe_connector : public Connector
+template <typename Connector, typename Locker, typename Barrier>
+class base_safe_connector : public Connector, protected Barrier
 {
 protected:
     typedef Connector base_type;
-    typedef shared_barrier barrier_type;
     typedef typename Locker::locker_type locker_type;
     typedef typename Locker::scoped_lock_type scoped_lock_type;
     typedef typename Locker::sharable_lock_type sharable_lock_type;
@@ -276,10 +306,8 @@ protected:
     virtual const pmessage_type do_get() const; ///< get the next message from the connector
     virtual bool do_pop(); ///< remove the next message from the connector
     locker_type& locker() const; ///< get the locker
-    barrier_type& barrier() const; ///< get the barrier
 private:
     mutable locker_type *m_plocker;
-    mutable barrier_type *m_pbarrier;
 };
 
 /**
@@ -287,9 +315,9 @@ private:
  */
 template <typename Connector, typename Locker = sharable_locker_interface,
     bool B = Locker::has_timed_lock>
-class safe_connector : public base_safe_connector<Connector, Locker>
+class safe_connector : public base_safe_connector<Connector, Locker, stub_barrier>
 {
-    typedef base_safe_connector<Connector, Locker> base_type;
+    typedef base_safe_connector<Connector, Locker, stub_barrier> base_type;
     typedef typename base_type::locker_type locker_type;
     typedef typename base_type::scoped_lock_type scoped_lock_type;
     typedef typename base_type::sharable_lock_type sharable_lock_type;
@@ -304,10 +332,10 @@ public:
  * The safe connector for inter process communications
  */
 template <typename Connector, typename Locker>
-class safe_connector<Connector, Locker, true> : public base_safe_connector<Connector, Locker>
+class safe_connector<Connector, Locker, true> : public base_safe_connector<Connector, Locker, sharable_barrier>
 {
     typedef Connector connector_type;
-    typedef base_safe_connector<Connector, Locker> base_type;
+    typedef base_safe_connector<Connector, Locker, sharable_barrier> base_type;
     typedef typename base_type::locker_type locker_type;
     typedef typename base_type::scoped_lock_type scoped_lock_type;
     typedef typename base_type::sharable_lock_type sharable_lock_type;
@@ -609,11 +637,10 @@ bidirectional_connector<Connector>::bidirectional_connector(const std::string& n
  * Constructor
  * @param name the name of the connector
  */
-template <typename Connector, typename Locker>
-base_safe_connector<Connector, Locker>::base_safe_connector(const std::string& name) :
+template <typename Connector, typename Locker, typename Barrier>
+base_safe_connector<Connector, Locker, Barrier>::base_safe_connector(const std::string& name) :
     base_type(name),
-    m_plocker(NULL),
-    m_pbarrier(NULL)
+    m_plocker(NULL)
 {
 }
 
@@ -621,8 +648,8 @@ base_safe_connector<Connector, Locker>::base_safe_connector(const std::string& n
  * Destructor
  */
 // virtual
-template <typename Connector, typename Locker>
-base_safe_connector<Connector, Locker>::~base_safe_connector()
+template <typename Connector, typename Locker, typename Barrier>
+base_safe_connector<Connector, Locker, Barrier>::~base_safe_connector()
 {
     if (base_type::enabled())
     {
@@ -637,7 +664,7 @@ base_safe_connector<Connector, Locker>::~base_safe_connector()
         }
         if (--(*pcounter) == 0)
         {
-            m_pbarrier->~barrier_type();
+            Barrier::free_barrier();
             m_plocker->~locker_type();
         }
     }
@@ -652,8 +679,8 @@ base_safe_connector<Connector, Locker>::~base_safe_connector()
  * @return the result of the creating
  */
 //virtual
-template <typename Connector, typename Locker>
-bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
+template <typename Connector, typename Locker, typename Barrier>
+bool base_safe_connector<Connector, Locker, Barrier>::do_create(const id_type cid,
     const size_t size, const struct timespec *pkeepalive_timeout,
     pconnector_type pconnector)
 {
@@ -668,7 +695,7 @@ bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
         ptr += sizeof(uint32_t);
         m_plocker = new (ptr) locker_type();
         ptr += sizeof(locker_type);
-        m_pbarrier = new (ptr) barrier_type();
+        ptr = reinterpret_cast<uint8_t*>(Barrier::create_barrier(ptr));
         scoped_lock_type lock(*m_plocker);
         base_type::create_queue(cid, size, pkeepalive_timeout, pconnector);
         ++(*pcounter);
@@ -684,8 +711,8 @@ bool base_safe_connector<Connector, Locker>::do_create(const id_type cid,
  * @return the result of the opening
  */
 //virtual
-template <typename Connector, typename Locker>
-bool base_safe_connector<Connector, Locker>::do_open(pconnector_type pconnector)
+template <typename Connector, typename Locker, typename Barrier>
+bool base_safe_connector<Connector, Locker, Barrier>::do_open(pconnector_type pconnector)
 {
     if (base_type::open_memory())
     {
@@ -699,7 +726,7 @@ bool base_safe_connector<Connector, Locker>::do_open(pconnector_type pconnector)
             ptr += sizeof(uint32_t);
             m_plocker = reinterpret_cast<locker_type*>(ptr);
             ptr += sizeof(locker_type);
-            m_pbarrier = reinterpret_cast<barrier_type*>(ptr);
+            ptr = reinterpret_cast<uint8_t*>(Barrier::open_barrier(ptr));
             scoped_lock_type lock(*m_plocker);
             base_type::open_queue(pconnector);
             ++(*pcounter);
@@ -714,11 +741,11 @@ bool base_safe_connector<Connector, Locker>::do_open(pconnector_type pconnector)
  * @return the pointer to the shared memory
  */
 //virtual
-template <typename Connector, typename Locker>
-void *base_safe_connector<Connector, Locker>::get_memory() const
+template <typename Connector, typename Locker, typename Barrier>
+void *base_safe_connector<Connector, Locker, Barrier>::get_memory() const
 {
     return reinterpret_cast<uint8_t*>(base_type::get_memory()) +
-        sizeof(locker_type) + sizeof(barrier_type) + sizeof(spinlock) + 
+        sizeof(locker_type) + Barrier::barrier_size() + sizeof(spinlock) + 
         sizeof(uint32_t);
 }
 
@@ -728,11 +755,11 @@ void *base_safe_connector<Connector, Locker>::get_memory() const
  * @return the size of the shared memory
  */
 //virtual
-template <typename Connector, typename Locker>
-size_t base_safe_connector<Connector, Locker>::memory_size(const size_t size) const
+template <typename Connector, typename Locker, typename Barrier>
+size_t base_safe_connector<Connector, Locker, Barrier>::memory_size(const size_t size) const
 {
     return base_type::memory_size(size) + sizeof(locker_type) +
-        sizeof(barrier_type) + sizeof(spinlock) + sizeof(uint32_t);
+        Barrier::barrier_size() + sizeof(spinlock) + sizeof(uint32_t);
 }
 
 /**
@@ -743,8 +770,8 @@ size_t base_safe_connector<Connector, Locker>::memory_size(const size_t size) co
  * @return result of the pushing
  */
 //virtual
-template <typename Connector, typename Locker>
-bool base_safe_connector<Connector, Locker>::do_push(const tag_type tag, 
+template <typename Connector, typename Locker, typename Barrier>
+bool base_safe_connector<Connector, Locker, Barrier>::do_push(const tag_type tag, 
     const void *data, const size_t size)
 {
     lock_to_push_type lock(*m_plocker);
@@ -760,8 +787,8 @@ bool base_safe_connector<Connector, Locker>::do_push(const tag_type tag,
  * @return the message
  */
 //virtual
-template <typename Connector, typename Locker>
-const pmessage_type base_safe_connector<Connector, Locker>::do_get() const
+template <typename Connector, typename Locker, typename Barrier>
+const pmessage_type base_safe_connector<Connector, Locker, Barrier>::do_get() const
 {
     lock_to_get_type lock(*m_plocker);
     if (lock.owns())
@@ -776,8 +803,8 @@ const pmessage_type base_safe_connector<Connector, Locker>::do_get() const
  * @return the result of the removing
  */
 //virtual
-template <typename Connector, typename Locker>
-bool base_safe_connector<Connector, Locker>::do_pop()
+template <typename Connector, typename Locker, typename Barrier>
+bool base_safe_connector<Connector, Locker, Barrier>::do_pop()
 {
     lock_to_pop_type lock(*m_plocker);
     if (lock.owns() && base_type::do_pop())
@@ -791,22 +818,11 @@ bool base_safe_connector<Connector, Locker>::do_pop()
  * Get the locker
  * @return the locker
  */
-template <typename Connector, typename Locker>
-typename base_safe_connector<Connector, Locker>::locker_type&
-    base_safe_connector<Connector, Locker>::locker() const
+template <typename Connector, typename Locker, typename Barrier>
+typename base_safe_connector<Connector, Locker, Barrier>::locker_type&
+    base_safe_connector<Connector, Locker, Barrier>::locker() const
 {
     return *m_plocker;
-}
-
-/**
- * Get the barrier
- * @return the barrier
- */
-template <typename Connector, typename Locker>
-typename base_safe_connector<Connector, Locker>::barrier_type&
-    base_safe_connector<Connector, Locker>::barrier() const
-{
-    return *m_pbarrier;
 }
 
 //==============================================================================
