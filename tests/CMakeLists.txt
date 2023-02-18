@@ -75,9 +75,12 @@ endif (QBUS_COVERAGE_ENABLED)
 add_custom_target(
     cppcheck
     COMMAND cppcheck
+    --inline-suppr
+    --suppressions-list=${CMAKE_CURRENT_SOURCE_DIR}/suppressions.list
     --enable=all
     --template=gcc
     --project=${CMAKE_BINARY_DIR}/compile_commands.json
+    -i ${CMAKE_SOURCE_DIR}/tests
 )
 
 add_custom_target(

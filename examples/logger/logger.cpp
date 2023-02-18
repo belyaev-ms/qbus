@@ -35,7 +35,7 @@ struct logger_list_type
 class base_logger
 {
 public:
-    base_logger(const config_type& config) :
+    explicit base_logger(const config_type& config) :
         m_config(config)
     {
     }
@@ -79,7 +79,7 @@ protected:
 class zmq_logger : public base_logger
 {
 public:
-    zmq_logger(const config_type& config ) :
+    explicit zmq_logger(const config_type& config) :
         base_logger(config),
         m_receiver(m_context, zmq::socket_type::pull)
     {
@@ -108,7 +108,7 @@ template <typename Connector>
 class qbus_logger : public base_logger
 {
 public:
-    qbus_logger(const config_type& config) :
+    explicit qbus_logger(const config_type& config) :
         base_logger(config),
         m_pconnector(connector::make<Connector>(config.address))
     {

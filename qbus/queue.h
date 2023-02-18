@@ -1,12 +1,13 @@
 #ifndef QBUS_QUEUE_H
 #define QBUS_QUEUE_H
 
+#include "qbus/message.h"
+#include "qbus/common.h"
+#include "qbus/service_message.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
-#include "qbus/message.h"
-#include "qbus/service_message.h"
 
 namespace qbus
 {
@@ -196,6 +197,7 @@ template <typename Queue>
 inline pqueue_type create(const id_type qid, void *ptr, const size_t cpct,
     pqueue_type pqueue = pqueue_type())
 {
+    QBUS_UNUSED(pqueue);
     return boost::make_shared<Queue>(qid, ptr, cpct);
 }
 
@@ -208,6 +210,7 @@ inline pqueue_type create(const id_type qid, void *ptr, const size_t cpct,
 template <typename Queue>
 inline pqueue_type open(void *ptr, pqueue_type pqueue = pqueue_type())
 {
+    QBUS_UNUSED(pqueue);
     return boost::make_shared<Queue>(ptr); 
 }
 

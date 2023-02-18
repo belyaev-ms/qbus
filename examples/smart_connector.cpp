@@ -8,7 +8,7 @@ typedef connector::safe_connector<
     connector::bidirectional_connector<connector::simple_connector<queue::smart_shared_queue> >,
     connector::sharable_spinlocker_with_sharable_pop_interface> smart_connector_type;
 
-int main(int argc, char** argv)
+int main(int argc, char** )
 {
     const char *name = "test";
     pconnector_type pconnector = connector::make<smart_connector_type>(name);
@@ -21,7 +21,6 @@ int main(int argc, char** argv)
         while (true)
         {
             std::cout << name << ":> ";
-            std::string s;
             std::cin >> s;
             if ("q" == s || "quit" == s || "exit" == s)
             {
@@ -41,9 +40,9 @@ int main(int argc, char** argv)
                 const size_t size = pmessage->data_size();
                 if (size > 0)
                 {
-                    std::vector<char> s(size);
-                    pmessage->unpack(&s[0]);
-                    std::cout << name << ":< " << &s[0] << std::endl;;
+                    std::vector<char> v(size);
+                    pmessage->unpack(&v[0]);
+                    std::cout << name << ":< " << &v[0] << std::endl;;
                 }
                 pconnector->pop(timeout);
             }

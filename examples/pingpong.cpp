@@ -17,7 +17,7 @@ size_t time_us()
 #if __APPLE__
     return mach_absolute_time();
 #else
-    struct timespec res = {0};
+    struct timespec res = { 0, 0 };
 	clock_gettime(CLOCK_MONOTONIC, &res);
     return res.tv_sec * 1000000 + res.tv_nsec / 1000;
 #endif

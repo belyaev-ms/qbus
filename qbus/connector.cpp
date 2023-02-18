@@ -286,6 +286,9 @@ shared_connector::shared_connector(const std::string& name, const direction_type
 bool shared_connector::do_create(const id_type cid, const size_t size,
     const struct timespec *pkeepalive_timeout, pconnector_type pconnector)
 {
+    QBUS_UNUSED(cid);
+    QBUS_UNUSED(pkeepalive_timeout);
+    QBUS_UNUSED(pconnector);
     return create_memory(size);
 }
 
@@ -297,6 +300,7 @@ bool shared_connector::do_create(const id_type cid, const size_t size,
 //virtual
 bool shared_connector::do_open(pconnector_type pconnector)
 {
+    QBUS_UNUSED(pconnector);
     return open_memory();
 }
 

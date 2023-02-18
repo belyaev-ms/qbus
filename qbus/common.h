@@ -3,6 +3,8 @@
 
 #include <time.h>
 
+#define QBUS_UNUSED(x) do { (void)(x); } while (0)
+
 namespace qbus
 {
 

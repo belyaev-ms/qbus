@@ -576,6 +576,7 @@ const pmessage_type output_connector<Connector>::do_get() const
 template <typename Connector>
 const pmessage_type output_connector<Connector>::do_timed_get(const struct timespec& timeout) const
 {
+    QBUS_UNUSED(timeout);
     return pmessage_type();
 }
 
@@ -599,6 +600,7 @@ bool output_connector<Connector>::do_pop()
 template <typename Connector>
 bool output_connector<Connector>::do_timed_pop(const struct timespec& timeout)
 {
+    QBUS_UNUSED(timeout);
     return false;
 }
 
@@ -626,6 +628,9 @@ input_connector<Connector>::input_connector(const std::string& name) :
 template <typename Connector>
 bool input_connector<Connector>::do_push(const tag_type tag, const void *data, const size_t size)
 {
+    QBUS_UNUSED(tag);
+    QBUS_UNUSED(data);
+    QBUS_UNUSED(size);
     return false;
 }
 
@@ -642,6 +647,10 @@ template <typename Connector>
 bool input_connector<Connector>::do_timed_push(const tag_type tag, const void *data, 
     const size_t size, const struct timespec& timeout)
 {
+    QBUS_UNUSED(tag);
+    QBUS_UNUSED(data);
+    QBUS_UNUSED(size);
+    QBUS_UNUSED(timeout);
     return false;
 }
 

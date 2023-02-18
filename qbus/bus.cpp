@@ -114,7 +114,7 @@ pconnector_type base_bus::make_connector(const id_type id) const
  */
 bool base_bus::can_add_connector() const
 {
-    controlblock_type& cb = get_controlblock();
+    const controlblock_type& cb = get_controlblock();
     return cb.output_id + 1 != cb.input_id;
 }
 
@@ -401,6 +401,7 @@ bool base_bus::do_timed_pop(const struct timespec& timeout)
 //virtual
 bool base_bus::do_create(const specification_type& spec)
 {
+    QBUS_UNUSED(spec);
     pconnector_type pconnector = make_connector(0);
     if (pconnector)
     {

@@ -47,7 +47,7 @@ void init_get_sid(get_sid_impl_type pfunc)
  */
 size_t get_timestamp()
 {
-    struct timespec ts = { 0 };
+    struct timespec ts = { 0, 0 };
     while (clock_gettime(CLOCK_MONOTONIC, &ts) != 0);
     return ts.tv_sec;
 }

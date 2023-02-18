@@ -31,7 +31,7 @@ struct client_list_type
 class base_client
 {
 public:
-    base_client(const config_type& config) :
+    explicit base_client(const config_type& config) :
         m_config(config)
     {
     }
@@ -44,7 +44,7 @@ protected:
 class zmq_client : public base_client
 {
 public:
-    zmq_client(const config_type& config ) :
+    explicit zmq_client(const config_type& config) :
         base_client(config),
         m_sender(m_context, zmq::socket_type::push)
     {
@@ -73,7 +73,7 @@ template <typename Connector>
 class qbus_client : public base_client
 {
 public:
-    qbus_client(const config_type& config) :
+    explicit qbus_client(const config_type& config) :
         base_client(config),
         m_pconnector(connector::make<Connector>(config.address))
     {
