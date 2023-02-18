@@ -6,6 +6,7 @@ project(qbus)
 option(CMAKE_EXPORT_COMPILE_COMMANDS                            ON)
 option(QBUS_USE_CLANG "use clang"                               OFF)
 option(QBUS_EXAMPLES_ENABLED "the examples are enabled"         ON)
+option(QBUS_ZMQ_ENABLED "use zmq to compare"                    OFF)
 option(QBUS_TEST_ENABLED "the tests are enabled"                ON)
 
 if (QBUS_USE_CLANG)

@@ -1,6 +1,8 @@
 #include "qbus/common.h"
 #include "qbus/connector.h"
+#ifdef QBUS_ZMQ_ENABLED
 #include <zmq.hpp>
+#endif
 #include <unistd.h>
 #include <ctime>
 #include <sstream>
@@ -38,6 +40,7 @@ protected:
     const config_type m_config;
 };
 
+#ifdef QBUS_ZMQ_ENABLED
 class zmq_client : public base_client
 {
 public:
@@ -64,6 +67,7 @@ private:
     zmq::context_t m_context;
     zmq::socket_t m_sender;
 };
+#endif
 
 template <typename Connector>
 class qbus_client : public base_client
@@ -134,10 +138,12 @@ int base_client_cycle(const config_type& config)
     return 0;
 }
 
+#ifdef QBUS_ZMQ_ENABLED
 int zmq_client_cycle(const config_type& config)
 {
     return base_client_cycle<zmq_client>(config);
 }
+#endif
 
 template <typename Connector>
 int qbus_client_cycle(const config_type& config)
@@ -194,7 +200,9 @@ int main(int argc, char** argv)
 
     client_list_type clients[] =
     {
+#ifdef QBUS_ZMQ_ENABLED
         { "zmq", zmq_client_cycle },
+#endif
         { "qbus", qbus_client_cycle<single_output_connector_type> },
         { "qbuss", qbus_client_cycle<connector::safe_connector<
             connector::output_connector<connector::single_bidirectional_connector_type >,

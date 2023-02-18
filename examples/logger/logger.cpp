@@ -1,6 +1,8 @@
 #include "qbus/common.h"
 #include "qbus/connector.h"
+#ifdef QBUS_ZMQ_ENABLED
 #include <zmq.hpp>
+#endif
 #include <unistd.h>
 #include <iostream>
 #include <string>
@@ -73,6 +75,7 @@ protected:
     std::string m_record;
 };
 
+#ifdef QBUS_ZMQ_ENABLED
 class zmq_logger : public base_logger
 {
 public:
@@ -99,6 +102,7 @@ private:
     zmq::socket_t m_receiver;
     zmq::message_t m_message;
 };
+#endif
 
 template <typename Connector>
 class qbus_logger : public base_logger
@@ -176,10 +180,12 @@ int base_logger_cycle(const config_type& config)
     return 0;
 }
 
+#ifdef QBUS_ZMQ_ENABLED
 int zmq_logger_cycle(const config_type& config)
 {
     return base_logger_cycle<zmq_logger>(config);
 }
+#endif
 
 template <typename Connector>
 int qbus_logger_cycle(const config_type& config)
@@ -241,7 +247,9 @@ int main(int argc, char** argv)
 
     logger_list_type loggers[] =
     {
+#ifdef QBUS_ZMQ_ENABLED
         { "zmq", zmq_logger_cycle },
+#endif
         { "qbus", qbus_logger_cycle<single_input_connector_type> },
         { "qbuss", qbus_logger_cycle<connector::safe_connector<
             connector::input_connector<connector::single_bidirectional_connector_type >,
