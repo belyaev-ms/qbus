@@ -199,6 +199,108 @@ void shared_locker::unlock_sharable()
 }
 
 //==============================================================================
+//  shared_posix_locker
+//==============================================================================
+/**
+ * Constructor
+ */
+shared_posix_locker::shared_posix_locker()
+{
+    int result = pthread_rwlockattr_init(&m_lock_attr);
+    assert(0 == result);
+    result = pthread_rwlockattr_setpshared(&m_lock_attr, PTHREAD_PROCESS_SHARED);
+    assert(0 == result);
+    result = pthread_rwlock_init(&m_lock, &m_lock_attr);
+    assert(0 == result);
+}
+
+/**
+ * Destructor
+ */
+shared_posix_locker::~shared_posix_locker()
+{
+    int result = pthread_rwlock_destroy(&m_lock);
+    assert(0 == result);
+    result = pthread_rwlockattr_destroy(&m_lock_attr);
+    assert(0 == result);
+}
+
+/**
+ * Try to set the exclusive lock
+ * @return the result of the setting
+ */
+bool shared_posix_locker::try_lock()
+{
+    return 0 == pthread_rwlock_trywrlock(&m_lock);
+}
+
+/**
+ * Set the exclusive lock
+ */
+void shared_posix_locker::lock()
+{
+    const int result = pthread_rwlock_wrlock(&m_lock);
+    assert(0 == result);
+}
+
+/**
+ * Try to set the exclusive lock until the time comes
+ * @param timeout the allowable timeout of the setting
+ * @return the result of the setting
+ */
+bool shared_posix_locker::timed_lock(const struct timespec& timeout)
+{
+    const struct timespec ts = get_monotonic_time() + timeout;
+    return 0 == pthread_rwlock_clockwrlock(&m_lock, CLOCK_MONOTONIC, &ts);
+}
+
+/**
+ * Remove the exclusive lock
+ */
+void shared_posix_locker::unlock()
+{
+    const int result = pthread_rwlock_unlock(&m_lock);
+    assert(0 == result);
+}
+
+/**
+ * Try to set the sharable lock
+ * @return the result of the setting
+ */
+bool shared_posix_locker::try_lock_sharable()
+{
+    return 0 == pthread_rwlock_tryrdlock(&m_lock);
+}
+
+/**
+ * Set the sharable lock
+ */
+void shared_posix_locker::lock_sharable()
+{
+    const int result = pthread_rwlock_rdlock(&m_lock);
+    assert(0 == result);
+}
+
+/**
+ * Try to set the sharable lock until the time comes
+ * @param timeout the allowable timeout of the setting
+ * @return the result of the setting
+ */
+bool shared_posix_locker::timed_lock_sharable(const struct timespec& timeout)
+{
+    const struct timespec ts = get_monotonic_time() + timeout;
+    return 0 == pthread_rwlock_clockrdlock(&m_lock, CLOCK_MONOTONIC, &ts);
+}
+
+/**
+ * Remove the sharable lock
+ */
+void shared_posix_locker::unlock_sharable()
+{
+    unlock();
+}
+
+//==============================================================================
 //  shared_barrier
 //==============================================================================
 /**

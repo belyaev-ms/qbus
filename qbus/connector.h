@@ -249,6 +249,34 @@ public:
 };
 
 /**
+ * The sharable POSIX locker interface based on pthread_rwlock_t
+ */
+class sharable_posixlocker_interface : public base_locker_interface<true>
+{
+public:
+    typedef shared_posix_locker locker_type;
+    typedef scoped_lock<locker_type> scoped_lock_type;
+    typedef sharable_lock<locker_type> sharable_lock_type;
+    typedef scoped_try_lock<locker_type> lock_to_push_type;
+    typedef scoped_try_lock<locker_type> lock_to_pop_type;
+    typedef sharable_try_lock<locker_type> lock_to_get_type;
+};
+
+/**
+ * The sharable POSIX locker interface to a connector that has a sharable pop operation
+ */
+class sharable_posixlocker_with_sharable_pop_interface : public base_locker_interface<true>
+{
+public:
+    typedef shared_posix_locker locker_type;
+    typedef scoped_lock<locker_type> scoped_lock_type;
+    typedef sharable_lock<locker_type> sharable_lock_type;
+    typedef scoped_try_lock<locker_type> lock_to_push_type;
+    typedef sharable_try_lock<locker_type> lock_to_pop_type;
+    typedef sharable_try_lock<locker_type> lock_to_get_type;
+};
+
+/**
  * The sharable barrier 
  */
 class sharable_barrier

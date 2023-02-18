@@ -3,6 +3,7 @@
 
 #include "qbus/exceptions.h"
 #include <time.h>
+#include <pthread.h>
 #include <boost/smart_ptr/detail/spinlock.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/interprocess_semaphore.hpp>
@@ -44,6 +45,30 @@ private:
     lock_type m_lock;
     volatile unsigned int m_scoped;
     volatile unsigned int m_sharable;
+};
+
+/**
+ * Simple class for RW locker based on pthread_rwlock_t
+ */
+class shared_posix_locker
+{
+public:
+    shared_posix_locker();
+    ~shared_posix_locker();
+    void lock();
+    bool timed_lock(const struct timespec& timeout);
+    bool try_lock();
+    void unlock();
+    void lock_sharable();
+    bool timed_lock_sharable(const struct timespec& timeout);
+    bool try_lock_sharable();
+    void unlock_sharable();
+private:
+    shared_posix_locker(const shared_locker& );
+    shared_posix_locker& operator=(const shared_locker& );
+private:
+    pthread_rwlock_t m_lock;
+    pthread_rwlockattr_t m_lock_attr;
 };
 
 /** Type to indicate to a locker constructor that must not lock it */
@@ -168,7 +193,6 @@ public:
     bool timed_lock(const struct timespec& timeout);
     bool try_lock();
     void unlock();
-protected:
 private:
     spinlock(const spinlock& );
     spinlock& operator=(const spinlock& );
