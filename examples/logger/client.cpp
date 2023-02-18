@@ -199,9 +199,6 @@ int main(int argc, char** argv)
         { "qbuss", qbus_client_cycle<connector::safe_connector<
             connector::output_connector<connector::single_bidirectional_connector_type >,
             connector::sharable_spinlocker_interface> > },
-        { "qbusss", qbus_client_cycle<connector::safe_connector<
-            connector::output_connector<connector::single_bidirectional_connector_type >,
-            connector::sharable_timed_locker_interface> > },
         { "", NULL }
     };
 
