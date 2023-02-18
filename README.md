@@ -2,7 +2,7 @@
 [![codecov](https://codecov.io/gh/belyaev-ms/dmux/branch/master/graph/badge.svg)](https://codecov.io/gh/belyaev-ms/dmux)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# dmux
+# qbus
 Library for organizing a simple shared interprocess communication channel
 
 ## License
