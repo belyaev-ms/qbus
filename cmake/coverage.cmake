@@ -4,7 +4,7 @@ set(CMAKE_C_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage")
 set(CMAKE_CXX_FLAGS "-g -O0 --coverage -fprofile-arcs -ftest-coverage")
 set(CMAKE_EXE_LINKER_FLAGS "-coverage -fprofile-arcs -ftest-coverage")
 
-function(dmux_coverage coverage_name)
+function(qbus_coverage coverage_name)
     if (NOT LCOV_PATH)
         message(FATAL_ERROR "lcov not found!")
     endif (NOT LCOV_PATH)
@@ -17,4 +17,4 @@ function(dmux_coverage coverage_name)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Processing code coverage counters and generating report."
     )
-endfunction(dmux_coverage)
+endfunction(qbus_coverage)

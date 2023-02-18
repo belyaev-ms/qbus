@@ -1,5 +1,5 @@
-#ifndef IPC_TEST_H
-#define IPC_TEST_H
+#ifndef QBUS_IPC_TEST_H
+#define QBUS_IPC_TEST_H
 
 #include <boost/test/unit_test.hpp>
 #include <iostream>
@@ -14,20 +14,22 @@
 #include <string>
 
 const size_t count = 10;
-const std::string test_server = "./test_server";
-const std::string test_client = "./test_client";
-const std::string test_server_log = test_server + ".log";
-const std::string test_client_log_ = test_client + ".%d.log";
+const std::string test_producer = "./" QBUS_IPC_TEST_PRODUCER;
+const std::string test_consumer = "./" QBUS_IPC_TEST_CONSUMER;
+const std::string test_producer_log = test_producer + ".log";
+const std::string test_consumer_log_ = test_consumer + ".%d.log";
 
-const std::string test_client_log(const size_t i)
+const std::string test_consumer_log(const size_t i)
 {
-    return boost::str(boost::format(test_client_log_) % i);
+    return boost::str(boost::format(test_consumer_log_) % i);
 }
 
-void run_process(const std::string& s)
+void run_process(const std::string& s, const size_t id)
 {
     BOOST_TEST_MESSAGE("\trun process '" << s << "' ...");
-    const int result = std::system((s + DMUX_IPC_TEST_PARAM).c_str());
+    std::stringstream ss;
+    ss << s << QBUS_IPC_TEST_PARAM << " " << id;
+    const int result = std::system(ss.str().c_str());
     BOOST_TEST_MESSAGE("\tfinish process '" << s << "' " << result);
 }
 
@@ -35,9 +37,9 @@ void clean_logs()
 {
     for (size_t i = 0; i < count; ++i)
     {
-        remove(test_client_log(i).c_str());
+        remove(test_consumer_log(i).c_str());
     }
-    remove(test_server_log.c_str());
+    remove(test_producer_log.c_str());
 }
 
 std::vector<std::string> get_messages(const std::string& filename)
@@ -75,35 +77,35 @@ BOOST_AUTO_TEST_CASE(one_server_and_few_clients)
     {
         mutex_remove()
         { 
-            boost::interprocess::named_mutex::remove("test_server");
-            boost::interprocess::named_mutex::remove("test_client");
+            boost::interprocess::named_mutex::remove("test_producer");
+            boost::interprocess::named_mutex::remove("test_consumer");
             clean_logs();
         }
         ~mutex_remove()
         { 
-            boost::interprocess::named_mutex::remove("test_client");
-            boost::interprocess::named_mutex::remove("test_server");
+            boost::interprocess::named_mutex::remove("test_consumer");
+            boost::interprocess::named_mutex::remove("test_producer");
         }
     } remover;
     
     boost::thread_group threads;
     boost::shared_ptr<boost::thread> pthread;
-    boost::interprocess::named_mutex server_mutex(boost::interprocess::create_only, "test_server");
-    boost::interprocess::named_mutex client_mutex(boost::interprocess::create_only, "test_client");
+    boost::interprocess::named_mutex server_mutex(boost::interprocess::create_only, "test_producer");
+    boost::interprocess::named_mutex client_mutex(boost::interprocess::create_only, "test_consumer");
     {
         boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(client_mutex);
-        BOOST_TEST_MESSAGE("start process '" + test_server + "':");
+        BOOST_TEST_MESSAGE("start process '" + test_producer + "':");
         {
             boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(server_mutex);
-            const std::string s = test_server + " > " + test_server_log;
-            pthread = boost::make_shared<boost::thread>(boost::bind(&run_process, s));
+            const std::string s = test_producer + " > " + test_producer_log;
+            pthread = boost::make_shared<boost::thread>(boost::bind(&run_process, s, 0));
             sleep(1);
-            BOOST_TEST_MESSAGE("start processes '" + test_client + "':");
+            BOOST_TEST_MESSAGE("start processes '" + test_consumer + "':");
             {
                 for (size_t i = 0; i < count; ++i)
                 {
-                    const std::string s = test_client + " > " + test_client_log(i);
-                    boost::thread *pth = new boost::thread(boost::bind(&run_process, s));
+                    const std::string s = test_consumer + " > " + test_consumer_log(i);
+                    boost::thread *pth = new boost::thread(boost::bind(&run_process, s, i + 1));
                     threads.add_thread(pth);
                 }
             }
@@ -112,22 +114,22 @@ BOOST_AUTO_TEST_CASE(one_server_and_few_clients)
     }
     {
         boost::interprocess::scoped_lock<boost::interprocess::named_mutex> lock(server_mutex);
-        BOOST_TEST_MESSAGE("wait for the processes '" + test_client + "' to finish:");
+        BOOST_TEST_MESSAGE("wait for the processes '" + test_consumer + "' to finish:");
         threads.join_all();
     }
-    BOOST_TEST_MESSAGE("wait for the process '" + test_server + "' to finish:");
+    BOOST_TEST_MESSAGE("wait for the process '" + test_producer + "' to finish:");
     pthread->join();
     
-    const std::vector<std::string> server_messages = get_messages(test_server_log);
+    const std::vector<std::string> server_messages = get_messages(test_producer_log);
     BOOST_REQUIRE_EQUAL(server_messages.size(), 1024);
     for (size_t i = 0; i < count; ++i)
     {
-        const std::vector<std::string> client_messages = get_messages(test_client_log(i));
+        const std::vector<std::string> client_messages = get_messages(test_consumer_log(i));
         BOOST_REQUIRE_EQUAL(client_messages.size(), server_messages.size());
         BOOST_REQUIRE_EQUAL_COLLECTIONS(server_messages.begin(), server_messages.end(),
             client_messages.begin(), client_messages.end());
     }
 }
 
-#endif /* IPC_TEST_H */
+#endif /* QBUS_IPC_TEST_H */
 
