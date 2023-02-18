@@ -80,10 +80,14 @@ private:
         COUNTER_SIZE    = sizeof(uint32_t),
         TS_OFFSET       = COUNTER_OFFSET + COUNTER_SIZE,
         TS_SIZE         = sizeof(uint32_t),
-        DATA_OFFSET     = TS_OFFSET + TS_SIZE,
+        DATA_OFFSET     = TS_OFFSET + TS_SIZE
+    };
+protected:
+    enum
+    {
         HEADER_SIZE     = DATA_OFFSET
     };
-
+private:
     void sid(const sid_type value); //< set the surce identifier of the message
     void timestamp(const size_t value); ///< set the timestamp of the message
     void flags(const flags_type value); ///< set the flags of the message
